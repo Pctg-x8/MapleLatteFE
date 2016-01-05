@@ -1,0 +1,6 @@
+name "mapleparser"
+description "Library of Maple Latte Parsing Tools(Lexicalizer/Parser/SyntaxTree)"
+copyright "Copyright © 2016, S.Percentage"
+authors "S.Percentage"
+
+targetType "library"

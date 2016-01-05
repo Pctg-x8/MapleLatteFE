@@ -1,0 +1,10 @@
+name "mlfe"
+description "Maple Latte Frontend Processor Project"
+copyright "Copyright © 2016, S.Percentage"
+authors "S.Percentage"
+
+targetType "none"
+
+subPackage "./cli"
+subPackage "./mapleparser"
+

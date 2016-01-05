@@ -1,0 +1,10 @@
+name "cli"
+description "CommandLine Interface of Maple Latte"
+copyright "Copyright © 2016, S.Percentage"
+authors "S.Percentage"
+
+targetType "executable"
+targetName "mlfe"
+
+dependency "mlfe:mapleparser" version="*"
+

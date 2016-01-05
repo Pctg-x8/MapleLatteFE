@@ -1,0 +1,50 @@
+module mlfe.mapleparser.lexer;
+
+import mlfe.mapleparser.lexer.source;
+import mlfe.mapleparser.utils.location;
+import std.file, std.range;
+
+/// Thread-safe Lexicalizer(Scanner + Tokenizer)
+public final class Lexer
+{
+	/// Input source
+	private immutable(string) source;
+	/// Private ctor
+	private this(string t) { this.source = t.idup; }
+	
+	/// Create lexer from string
+	public static auto fromString(string src) { return new Lexer(src); }
+	/// Create lexer from file
+	public static auto fromFile(string path) { return new Lexer(readText(path)); }
+	
+	/// Run parsing
+	public void parse()
+	{
+		auto src = new SourceObject(this.source[], Location.init);
+		
+		while(!src.range.empty)
+		{
+			src.range = src.range.dropOne;
+		}
+	}
+}
+
+unittest
+{
+	void test(string Name, alias Func)()
+	{
+		import std.datetime : StopWatch;
+		import std.stdio : writeln;
+		
+		StopWatch sw;
+		sw.start();
+		scope(exit)
+		{
+			sw.stop();
+			writeln("Test \"", Name, "\" finished. time = ", sw.peek.usecs, " us");
+		}
+		Func();
+	}
+	
+	test!("Input Sanitize Test", () => Lexer.fromString("testにゃー").parse());
+}
