@@ -2,6 +2,7 @@ module mlfe.mapleparser.lexer;
 
 import mlfe.mapleparser.lexer.source;
 import mlfe.mapleparser.utils.location;
+import mlfe.mapleparser.lexer.exception;
 import std.file, std.range;
 
 /// Thread-safe Lexicalizer(Scanner + Tokenizer)
@@ -20,11 +21,12 @@ public final class Lexer
 	/// Run parsing
 	public void parse()
 	{
-		auto src = new SourceObject(this.source[], Location.init);
+		auto src = SourceObject(this.source[], Location.init);
 		
 		while(!src.range.empty)
 		{
-			src.range = src.range.dropOne;
+			src = src.followOne;
+			throw new LexicalizeError(src.current);
 		}
 	}
 }

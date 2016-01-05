@@ -1,5 +1,7 @@
 module mlfe.mapleparser.utils.location;
 
+import std.conv;
+
 /// Location object
 struct Location
 {
@@ -7,9 +9,12 @@ struct Location
 	size_t line = 1;
 	/// Character count in source
 	size_t column = 1;
+	
+	/// Convert structure data to string
+	public auto toString() const nothrow { return to!string(this.line) ~ ":" ~ to!string(this.column); }
 }
 
-/++ utility functions +/
+/+ utility functions +/
 /// Forward column(s)
 auto forward(immutable(Location) loc, size_t count = 1) { return Location(loc.line, loc.column + count); }
 /// Break a line
