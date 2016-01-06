@@ -4,6 +4,8 @@ import mlfe.mapleparser.lexer.source;
 import mlfe.mapleparser.utils.location;
 import mlfe.mapleparser.lexer.exception;
 import mlfe.mapleparser.lexer.spaces;
+import mlfe.mapleparser.lexer.rules;
+import mlfe.mapleparser.lexer.token;
 import std.file, std.range;
 
 /// Thread-safe Lexicalizer(Scanner + Tokenizer)
@@ -20,16 +22,20 @@ public final class Lexer
 	public static auto fromFile(string path) { return new Lexer(readText(path)); }
 	
 	/// Run parsing
-	public void parse()
+	public auto parse()
 	{
 		auto src = SourceObject(this.source[], Location.init);
+		auto tlist = TokenList();
 		
 		while(!src.range.empty)
 		{
 			src = src.skipSpaces.skipComments;
 			if(src.range.empty) break;
-			throw new LexicalizeError(src.current);
+			auto ret = src.getToken;
+			tlist ~= ret.token;
+			src = ret.rest;
 		}
+		return tlist ~ new Token(src.current, TokenType.EndOfScript);
 	}
 }
 
@@ -52,4 +58,5 @@ unittest
 	
 	// test!("Input Sanitize Test", () => Lexer.fromString("testにゃー").parse());
 	test!("SkippingElementsTest", () => Lexer.fromString("/* blocked */\n\t	 // commend\n// comment with eof").parse());
+	test!("OperatorTokenScanningTest", () => Lexer.fromString("/* blocked */++->**/**/%=% =#").parse());
 }
