@@ -4,7 +4,7 @@ import mlfe.mapleparser.lexer.source;
 import mlfe.mapleparser.utils.location;
 import mlfe.mapleparser.lexer.exception;
 import mlfe.mapleparser.lexer.token;
-import std.range, std.algorithm;
+import std.range, std.algorithm, std.utf : toUTF8;
 
 /// Result of getToken
 struct Get_TokenResult
@@ -57,6 +57,8 @@ auto getToken(immutable(SourceObject) src)
 	}
 	switch(src.range.front)
 	{
+	case '"': return parseStringToken(src);
+	case '\'': return parseCharacterToken(src);
 	case '+': return makeResult!(1, TokenType.Plus);
 	case '-': return makeResult!(1, TokenType.Minus);
 	case '*': return makeResult!(1, TokenType.Asterisk);
@@ -86,4 +88,60 @@ auto getToken(immutable(SourceObject) src)
 	}
 	
 	throw new LexicalizeError(src.current, "No match tokens found.");
+}
+
+/// Parse characters as string literal
+auto parseStringToken(immutable(SourceObject) src)
+{
+	auto src2 = src.forward(1);
+	string temp;
+	
+	bool succeeded = false;
+	while(!src2.range.empty)
+	{
+		if(src2.range.front == '"') { succeeded = true; break; }
+		auto ret = src2.parseAsCharacter();
+		temp ~= ret.chr;
+		src2 = ret.rest;
+	}
+	if(!succeeded) throw new LexicalizeError(src.current, "String literal is not enclosed");
+	return Get_TokenResult(new Token(src.current, TokenType.StringLiteral, temp), src2.forward(1));
+}
+/// Parse character literal
+auto parseCharacterToken(immutable(SourceObject) src)
+{
+	auto src2 = src.forward(1);
+	if(src2.range.front == '\'') throw new LexicalizeError(src.current, "Empty character literal is not allowed");
+	auto ret = src2.parseAsCharacter();
+	if(ret.rest.range.empty || ret.rest.range.front != '\'')
+	{
+		throw new LexicalizeError(src.current, "Character literal is not enclosed");
+	}
+	return Get_TokenResult(new Token(src.current, TokenType.CharacterLiteral, toUTF8([ret.chr])), ret.rest.forward(1));
+}
+
+/// Result of parsing character
+struct CharParseResult
+{
+	/// Retrieved character
+	dchar chr;
+	/// Rest source
+	SourceObject rest;	
+}
+/// Parse a characters
+auto parseAsCharacter(immutable(SourceObject) src)
+{
+	return src.range.front != '\\' ? CharParseResult(src.range.front, src.followOne) : parseAsEscapedCharacter(src);
+}
+/// Parse a escaped characters
+auto parseAsEscapedCharacter(immutable(SourceObject) src)
+{
+	auto r = src.range.dropOne, l = src.current.forward;
+	switch(r.front)
+	{
+	case 'n': return CharParseResult('\n', SourceObject(r.dropOne, l.forward));
+	case 't': return CharParseResult('\t', SourceObject(r.dropOne, l.forward));
+	case 'r': return CharParseResult('\r', SourceObject(r.dropOne, l.forward));
+	default: return CharParseResult(r.front, SourceObject(r.dropOne, l.forward));
+	}
 }

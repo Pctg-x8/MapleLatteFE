@@ -59,4 +59,5 @@ unittest
 	// test!("Input Sanitize Test", () => Lexer.fromString("testにゃー").parse());
 	test!("SkippingElementsTest", () => Lexer.fromString("/* blocked */\n\t	 // commend\n// comment with eof").parse());
 	test!("OperatorTokenScanningTest", () => Lexer.fromString("/* blocked */++->**/**/%=% =#").parse());
+	test!("LiteralScanningTest1", () => Lexer.fromString("\"string literal\"/* aa */'a' 'b' '\"'").parse());
 }
