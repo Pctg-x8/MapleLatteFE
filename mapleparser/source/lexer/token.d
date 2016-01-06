@@ -7,7 +7,7 @@ import std.variant;
 /// A token
 final class Token
 {
-	private alias ValueType = Algebraic!(string, real, float, double, long);
+	private alias ValueType = Algebraic!(string, real, float, double, long, ulong);
 	private Location _at;
 	private TokenType _type;
 	private ValueType _val;
@@ -70,6 +70,7 @@ alias TokenList = DList!Token;
 enum TokenType
 {
 	EndOfScript, StringLiteral, CharacterLiteral, NumericLiteral, FloatLiteral, DoubleLiteral, LongLiteral,
+	UlongLiteral, HexadecimalLiteral,
 	Identifier,
 	
 	LeftAngleBracket2_Equal, RightAngleBracket2_Equal,

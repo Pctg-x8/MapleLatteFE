@@ -31,6 +31,7 @@ auto getToken(immutable(SourceObject) src)
 	}
 	if(src.range.count >= 2) switch(src.range[0 .. 2])
 	{
+	case "0x": return parseHexadecimalLiteral(src);
 	case "++": return makeResult!(2, TokenType.Plus2);
 	case "--": return makeResult!(2, TokenType.Minus2);
 	case "**": return makeResult!(2, TokenType.Asterisk2);
@@ -183,7 +184,7 @@ auto parsePeriodOrNumericLiteral(immutable(SourceObject) src)
 auto parseNumericLiteral(SourceObject src)
 {
 	auto r = src.range, l = src.current;
-	long int_part = 0;
+	ulong int_part = 0;
 	while(!r.empty && ('0' <= r.front && r.front <= '9'))
 	{
 		int_part = int_part * 10 + (r.front - '0');
@@ -199,12 +200,15 @@ auto parseNumericLiteral(SourceObject src)
 		case 'd': case 'D':
 			return Get_TokenResult(new Token(src.current, TokenType.DoubleLiteral, cast(double)int_part),
 				SourceObject(r.dropOne, l.forward));
+		case 'u': case 'U':
+			return Get_TokenResult(new Token(src.current, TokenType.UlongLiteral, int_part),
+				SourceObject(r.dropOne, l.forward));
 		default: break;
 		}
 	}
 	if(r.empty || r.front != '.')
 	{
-		return Get_TokenResult(new Token(src.current, TokenType.LongLiteral, int_part), SourceObject(r, l));
+		return Get_TokenResult(new Token(src.current, TokenType.LongLiteral, cast(long)int_part), SourceObject(r, l));
 	}
 	r = r.dropOne; l = l.forward;
 	real frac_part = 0.0, divs = 10.0;
@@ -230,4 +234,34 @@ auto parseNumericLiteral(SourceObject src)
 	}
 	return Get_TokenResult(new Token(src.current, TokenType.NumericLiteral, cast(real)int_part + frac_part),
 		SourceObject(r, l));
+}
+/// Parse range as hexadecimal literal
+auto parseHexadecimalLiteral(immutable(SourceObject) src)
+{
+	pure static auto isHexdCharacter(dchar c)
+	{
+		return ('0' <= c && c < '9') || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F');
+	}
+	
+	auto r = src.range.drop(2), l = src.current.forward(2);
+	ulong int_part = 0;
+	while(!r.empty && isHexdCharacter(r.front))
+	{
+		int_part <<= 4;
+		if('0' <= r.front && r.front <= '9') int_part |= (r.front - '0') & 0x0f;
+		else if('a' <= r.front && r.front <= 'f') int_part |= (r.front - 'a') & 0x0f + 0x0a;
+		else int_part |= (r.front - 'A') & 0x0f + 0x0a;
+		r = r.dropOne; l = l.forward;
+	}
+	if(!r.empty)
+	{
+		switch(r.front)
+		{
+		case 'u': case 'U':
+			return Get_TokenResult(new Token(src.current, TokenType.UlongLiteral, int_part),
+				SourceObject(r.dropOne, l.forward));
+		default: break;
+		}
+	}
+	return Get_TokenResult(new Token(src.current, TokenType.LongLiteral, cast(long)int_part), SourceObject(r, l));
 }
