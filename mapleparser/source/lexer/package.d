@@ -3,6 +3,7 @@ module mlfe.mapleparser.lexer;
 import mlfe.mapleparser.lexer.source;
 import mlfe.mapleparser.utils.location;
 import mlfe.mapleparser.lexer.exception;
+import mlfe.mapleparser.lexer.spaces;
 import std.file, std.range;
 
 /// Thread-safe Lexicalizer(Scanner + Tokenizer)
@@ -25,7 +26,8 @@ public final class Lexer
 		
 		while(!src.range.empty)
 		{
-			src = src.followOne;
+			src = src.skipSpaces.skipComments;
+			if(src.range.empty) break;
 			throw new LexicalizeError(src.current);
 		}
 	}
@@ -48,5 +50,6 @@ unittest
 		Func();
 	}
 	
-	test!("Input Sanitize Test", () => Lexer.fromString("testにゃー").parse());
+	// test!("Input Sanitize Test", () => Lexer.fromString("testにゃー").parse());
+	test!("SkippingElementsTest", () => Lexer.fromString("/* blocked */\n\t	 // commend\n// comment with eof").parse());
 }
