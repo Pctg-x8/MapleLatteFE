@@ -57,6 +57,7 @@ auto getToken(immutable(SourceObject) src)
 	}
 	switch(src.range.front)
 	{
+	case '0': .. case '9': return parseNumericLiteral(src);
 	case '"': return parseStringToken(src);
 	case '\'': return parseCharacterToken(src);
 	case '+': return makeResult!(1, TokenType.Plus);
@@ -77,7 +78,7 @@ auto getToken(immutable(SourceObject) src)
 	case ':': return makeResult!(1, TokenType.Colon);
 	case ';': return makeResult!(1, TokenType.Semicolon);
 	case ',': return makeResult!(1, TokenType.Comma);
-	case '.': return makeResult!(1, TokenType.Period);
+	case '.': return parsePeriodOrNumericLiteral(src);
 	case '(': return makeResult!(1, TokenType.OpenParenthese);
 	case ')': return makeResult!(1, TokenType.CloseParenthese);
 	case '{': return makeResult!(1, TokenType.OpenBrace);
@@ -144,4 +145,89 @@ auto parseAsEscapedCharacter(immutable(SourceObject) src)
 	case 'r': return CharParseResult('\r', SourceObject(r.dropOne, l.forward));
 	default: return CharParseResult(r.front, SourceObject(r.dropOne, l.forward));
 	}
+}
+
+/// Parse range as single period or numeric omitted int-part.
+auto parsePeriodOrNumericLiteral(immutable(SourceObject) src)
+{
+	auto r = src.range.dropOne, l = src.current.forward;
+	
+	if(r.empty || '0' > r.front || r.front > '9')
+	{
+		return Get_TokenResult(new Token(src.current, TokenType.Period), SourceObject(r, l));
+	}
+	real frac_part = 0.0, divs = 10.0;
+	while(!r.empty && ('0' <= r.front && r.front <= '9'))
+	{
+		frac_part += (r.front - '0') / divs;
+		divs *= 10.0;
+		r = r.dropOne;
+		l = l.forward;
+	}
+	if(!r.empty)
+	{
+		switch(r.front)
+		{
+		case 'f': case 'F':
+			return Get_TokenResult(new Token(src.current, TokenType.FloatLiteral,
+				cast(float)frac_part), SourceObject(r.dropOne, l.forward));
+		case 'd': case 'D':
+			return Get_TokenResult(new Token(src.current, TokenType.DoubleLiteral,
+				cast(double)frac_part), SourceObject(r.dropOne, l.forward));
+		default: break;
+		}
+	}
+	return Get_TokenResult(new Token(src.current, TokenType.NumericLiteral, frac_part), SourceObject(r, l));
+}
+/// Parse range as some numeric literal
+auto parseNumericLiteral(SourceObject src)
+{
+	auto r = src.range, l = src.current;
+	long int_part = 0;
+	while(!r.empty && ('0' <= r.front && r.front <= '9'))
+	{
+		int_part = int_part * 10 + (r.front - '0');
+		r = r.dropOne; l = l.forward;
+	}
+	if(!r.empty)
+	{
+		switch(r.front)
+		{
+		case 'f': case 'F':
+			return Get_TokenResult(new Token(src.current, TokenType.FloatLiteral, cast(float)int_part),
+				SourceObject(r.dropOne, l.forward));
+		case 'd': case 'D':
+			return Get_TokenResult(new Token(src.current, TokenType.DoubleLiteral, cast(double)int_part),
+				SourceObject(r.dropOne, l.forward));
+		default: break;
+		}
+	}
+	if(r.empty || r.front != '.')
+	{
+		return Get_TokenResult(new Token(src.current, TokenType.LongLiteral, int_part), SourceObject(r, l));
+	}
+	r = r.dropOne; l = l.forward;
+	real frac_part = 0.0, divs = 10.0;
+	while(!r.empty && ('0' <= r.front && r.front <= '9'))
+	{
+		frac_part += (r.front - '0') / divs;
+		divs *= 10.0;
+		r = r.dropOne;
+		l = l.forward;
+	}
+	if(!r.empty)
+	{
+		switch(r.front)
+		{
+		case 'f': case 'F':
+			return Get_TokenResult(new Token(src.current, TokenType.FloatLiteral,
+				cast(float)int_part + cast(float)frac_part), SourceObject(r.dropOne, l.forward));
+		case 'd': case 'D':
+			return Get_TokenResult(new Token(src.current, TokenType.DoubleLiteral,
+				cast(double)int_part + cast(float)frac_part), SourceObject(r.dropOne, l.forward));
+		default: break;
+		}
+	}
+	return Get_TokenResult(new Token(src.current, TokenType.NumericLiteral, cast(real)int_part + frac_part),
+		SourceObject(r, l));
 }

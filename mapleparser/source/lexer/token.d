@@ -2,13 +2,15 @@ module mlfe.mapleparser.lexer.token;
 
 import mlfe.mapleparser.utils.location;
 public import std.container;
+import std.variant;
 
 /// A token
 final class Token
 {
+	private alias ValueType = Algebraic!(string, real, float, double, long);
 	private Location _at;
 	private TokenType _type;
-	private string _val = "";
+	private ValueType _val;
 	
 	/// Construct token
 	public this(Location a, TokenType t)
@@ -16,12 +18,40 @@ final class Token
 		this._at = a;
 		this._type = t;
 	}
-	/// Construct token with value
+	/// Construct token with string value
 	public this(Location a, TokenType t, immutable(string) v)
 	{
 		this._at = a;
 		this._type = t;
-		this._val = v.dup;
+		this._val = v.idup;
+	}
+	/// Construct token with real value
+	public this(Location a, TokenType t, real r)
+	{
+		this._at = a;
+		this._type = t;
+		this._val = r;
+	}
+	/// Construct token with float value
+	public this(Location a, TokenType t, float f)
+	{
+		this._at = a;
+		this._type = t;
+		this._val = f;
+	}
+	/// Construct token with double value
+	public this(Location a, TokenType t, double d)
+	{
+		this._at = a;
+		this._type = t;
+		this._val = d;
+	}
+	/// Construct token with long value
+	public this(Location a, TokenType t, long l)
+	{
+		this._at = a;
+		this._type = t;
+		this._val = l;
 	}
 	
 public @property:
@@ -30,7 +60,7 @@ public @property:
 	/// Type of token
 	auto type() const { return this._type; }
 	/// Value of token
-	auto value() const { return this._val; }
+	auto value(T)() const { return this._val.get!T; }
 }
 
 /// TokenList(alias to std.container.DList!Token)
