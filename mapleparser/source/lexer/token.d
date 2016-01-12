@@ -98,5 +98,7 @@ enum TokenType
 	Plus, Minus, Asterisk, Slash, Percent, Ampasand, VerticalLine, Accent, LeftAngleBracket, RightAngleBracket, Equal,
 	Hatena, Sharp, Exclamation, Tilda,
 	Comma, Colon, Semicolon, Period,
-	OpenParenthese, CloseParenthese, OpenBracket, CloseBracket, OpenBrace, CloseBrace
+	OpenParenthese, CloseParenthese, OpenBracket, CloseBracket, OpenBrace, CloseBrace,
+	
+	Package
 }

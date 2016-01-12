@@ -102,7 +102,14 @@ auto getToken(immutable(SourceObject) src)
 		id_temp ~= src2.range.front;
 		src2 = src2.followOne;
 	}
-	if(!id_temp.empty) return Get_TokenResult(new Token(src2.current, TokenType.Identifier, id_temp), src2);
+	if(!id_temp.empty)
+	{
+		switch(id_temp)
+		{
+		case "package": return Get_TokenResult(new Token(src2.current, TokenType.Package), src2);
+		default: return Get_TokenResult(new Token(src2.current, TokenType.Identifier, id_temp), src2);
+		}
+	}
 	
 	throw new LexicalizeError(src.current, "No match tokens found.");
 }
