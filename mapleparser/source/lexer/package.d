@@ -39,6 +39,17 @@ public final class Lexer
 	}
 }
 
+/// Dump all tokens in list
+void dumpList(TokenList input)
+{
+	import std.stdio : writeln;
+	foreach(t; input)
+	{
+		if(t.hasValue) writeln("-- ", t.type, "(", t.valueStr, ") found at ", t.at);
+		else writeln("-- ", t.type, " found at ", t.at);
+	}
+}
+
 unittest
 {
 	void test(string Name, alias Func)()
@@ -53,12 +64,20 @@ unittest
 			sw.stop();
 			writeln("Test \"", Name, "\" finished. time = ", sw.peek.usecs, " us");
 		}
-		Func();
+		static if(is(typeof(Func()) == TokenList))
+		{
+			Func().dumpList();
+		}
+		else
+		{
+			Func();
+		}
 	}
 	
 	// test!("Input Sanitize Test", () => Lexer.fromString("testにゃー").parse());
 	test!("SkippingElementsTest", () => Lexer.fromString("/* blocked */\n\t	 // commend\n// comment with eof").parse());
 	test!("OperatorTokenScanningTest", () => Lexer.fromString("/* blocked */++->**/**/%=% =#").parse());
-	test!("LiteralScanningTest1", () => Lexer.fromString("\"string literal\"/* aa */'a' 'b' '\"'").parse());
+	test!("LiteralScanningTest1", () => Lexer.fromString("\"string literal\"/* aa */'a' 'b' '\\\"'").parse());
 	test!("NumericLiteralScanningTest", () => Lexer.fromString("00123 34.567f 68.3d .4f 3.f 63D 0x13 0x244u").parse());
+	test!("IdentifierScanningTest", () => Lexer.fromString("var a = 0, b = 2.45f, c = \"Test Literal\";").parse());
 }
