@@ -1,11 +1,11 @@
 module mlfe.mapleparser.lexer;
 
-import mlfe.mapleparser.lexer.source;
-import mlfe.mapleparser.utils.location;
-import mlfe.mapleparser.lexer.exception;
-import mlfe.mapleparser.lexer.spaces;
-import mlfe.mapleparser.lexer.rules;
-import mlfe.mapleparser.lexer.token;
+public import mlfe.mapleparser.lexer.source;
+public import mlfe.mapleparser.utils.location;
+public import mlfe.mapleparser.lexer.exception;
+public import mlfe.mapleparser.lexer.spaces;
+public import mlfe.mapleparser.lexer.rules;
+public import mlfe.mapleparser.lexer.token;
 import std.file, std.range;
 
 /// Thread-safe Lexicalizer(Scanner + Tokenizer)

@@ -2,6 +2,7 @@ module mlfe.mapleparser.parser;
 
 // Parser //
 import mlfe.mapleparser.lexer;
+import std.container;
 
 /// Parser class
 public final class Parser
@@ -10,9 +11,9 @@ public final class Parser
 	private TokenList input;
 	
 	/// Construct with Token List
-	public this(immutable(TokenList) list)
+	public this(TokenList list)
 	{
-		this.input = list.dup;
+		foreach(d; list) this.input ~= d.idup;
 	}
 	
 	/// Run parser
@@ -24,15 +25,13 @@ public final class Parser
 
 unittest
 {
-	immutable TokenList input_sample = 
-	[
-		new Token(Location.init, TokenType.Package),
-		new Token(Location.init + 7, TokenType.Identifier, "maple"),
-		new Token(Location.init + 7 + 6, TokenType.Period),
-		new Token(Location.init + 7 + 6 + 1, TokenType.Identifier, "test"),
-		new Token(Location.init + 7 + 6 + 1 + 4, TokenType.Semicolon),
-		new Token(Location.init + 7 + 6 + 1 + 4 + 1, TokenType.EndOfToken)
-	];
+	TokenList input_sample;
+	input_sample ~= new Token(Location.init, TokenType.Package);
+	input_sample ~= new Token(Location(1, 8), TokenType.Identifier, "maple");
+	input_sample ~= new Token(Location(1, 14), TokenType.Period);
+	input_sample ~= new Token(Location(1, 15), TokenType.Identifier, "test");
+	input_sample ~= new Token(Location(1, 19), TokenType.Semicolon);
+	input_sample ~= new Token(Location(1, 20), TokenType.EndOfScript);
 	
 	scope auto parser = new Parser(input_sample);
 	parser.parse();

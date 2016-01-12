@@ -14,6 +14,22 @@ final class Token
 	private bool has_value = false;
 	private string vstr;
 	
+	/// Immutable Duplication
+	public @property idup() immutable
+	{
+		return new Token(this._at, this._type, this._val, this.has_value, this.vstr);
+	}
+	
+	/// Private constructor for idup
+	private this(Location l, TokenType t, ValueType v, bool hv, immutable(string) vs)
+	{
+		this._at = l;
+		this._type = t;
+		this._val = v;
+		this.has_value = hv;
+		this.vstr = vs.idup;
+	}
+	
 	/// Construct token
 	public this(Location a, TokenType t)
 	{
