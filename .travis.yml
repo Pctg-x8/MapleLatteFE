@@ -1,0 +1,4 @@
+language: d
+
+script:
+- dub test mlfe:mapleparser
