@@ -104,9 +104,13 @@ auto getToken(immutable(SourceObject) src)
 	}
 	if(!id_temp.empty)
 	{
+		auto makeToken(TokenType T)() { return Get_TokenResult(new Token(src2.current, T), src2); }
+		
 		switch(id_temp)
 		{
-		case "package": return Get_TokenResult(new Token(src2.current, TokenType.Package), src2);
+		case "package": return makeToken!(TokenType.Package);
+		case "this": return makeToken!(TokenType.This);
+		case "super": return makeToken!(TokenType.Super);
 		default: return Get_TokenResult(new Token(src2.current, TokenType.Identifier, id_temp), src2);
 		}
 	}

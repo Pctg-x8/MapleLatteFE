@@ -1,8 +1,9 @@
 module mlfe.mapleparser.parser;
 
 // Parser //
+public import mlfe.mapleparser.parser.expression;
 import mlfe.mapleparser.lexer;
-import std.container;
+import std.container, std.range;
 
 /// Parser class
 public final class Parser
@@ -13,26 +14,22 @@ public final class Parser
 	/// Construct with Token List
 	public this(TokenList list)
 	{
-		foreach(d; list) this.input ~= d.idup;
+		this.input = list.dup;
 	}
 	
 	/// Run parser
 	public void parse()
 	{
-		
+		scope auto rest = PrimaryExpression.parse(this.input);
+		if(rest.front.type != TokenType.EndOfScript) assert(false);
 	}
 }
 
 unittest
 {
-	TokenList input_sample;
-	input_sample ~= new Token(Location.init, TokenType.Package);
-	input_sample ~= new Token(Location(1, 8), TokenType.Identifier, "maple");
-	input_sample ~= new Token(Location(1, 14), TokenType.Period);
-	input_sample ~= new Token(Location(1, 15), TokenType.Identifier, "test");
-	input_sample ~= new Token(Location(1, 19), TokenType.Semicolon);
-	input_sample ~= new Token(Location(1, 20), TokenType.EndOfScript);
+	auto tester(string str)() { new Parser(Lexer.fromString(str).parse()).parse(); }
 	
-	scope auto parser = new Parser(input_sample);
-	parser.parse();
+	tester!"123456";
+	tester!"\"test\"";
+	tester!"this";
 }

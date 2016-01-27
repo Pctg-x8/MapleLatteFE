@@ -25,7 +25,7 @@ public final class Lexer
 	public auto parse()
 	{
 		auto src = SourceObject(this.source[], Location.init);
-		auto tlist = TokenList();
+		TokenList tlist;
 		
 		while(!src.range.empty)
 		{

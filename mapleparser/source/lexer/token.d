@@ -96,7 +96,7 @@ public @property:
 }
 
 /// TokenList(alias to std.container.DList!Token)
-alias TokenList = DList!Token;
+alias TokenList = Token[];
 
 /// Types of token
 enum TokenType
@@ -116,5 +116,5 @@ enum TokenType
 	Comma, Colon, Semicolon, Period,
 	OpenParenthese, CloseParenthese, OpenBracket, CloseBracket, OpenBrace, CloseBrace,
 	
-	Package
+	Package, This, Super
 }
