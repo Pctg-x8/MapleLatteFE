@@ -1,4 +1,9 @@
 language: d
 
+install:
+- wget -q -O - "http://bit.ly/Doveralls" | bash
+- chmod +x doveralls
+
 script:
-- dub test mlfe:mapleparser
+- dub test -b unittest-cov mlfe:mapleparser
+- ./doveralls
