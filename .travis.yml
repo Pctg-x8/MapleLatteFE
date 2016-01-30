@@ -2,7 +2,8 @@ language: d
 
 install:
 - export TRAVIS_OS_NAME=linux
-- wget -q -O - "http://bit.ly/Doveralls" | bash
+- wget -q -O - "http://bit.ly/Doveralls" > doveralls.install.sh
+- bash ./doveralls.install.sh
 - chmod +x doveralls
 
 script:
