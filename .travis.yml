@@ -3,6 +3,7 @@ language: d
 install:
 - wget -q -O - "http://bit.ly/Doveralls" > doveralls_script.sh
 - cat doveralls_script.sh
+- echo ${TRAVIS_OS_NAME}
 - bash ./doveralls_script.sh
 - chmod +x doveralls
 
