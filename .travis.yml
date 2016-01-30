@@ -2,8 +2,7 @@ language: d
 
 install:
 - export TRAVIS_OS_NAME=linux
-- wget -q -O - "http://bit.ly/Doveralls" > doveralls.install.sh
-- bash ./doveralls.install.sh
+- curl "https://api.github.com/repos/ColdenCullen/doveralls/releases" | jq '.[0].assets | .[] | select(.name == "doveralls_linux_travis") | .browser_download_url' | xargs wget -O doveralls
 - chmod +x doveralls
 
 script:
