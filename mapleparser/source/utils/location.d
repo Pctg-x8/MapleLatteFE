@@ -13,7 +13,7 @@ struct Location
 	/// Convert structure data to string
 	public auto toString() const nothrow { return to!string(this.line) ~ ":" ~ to!string(this.column); }
 	/// Duplicate object
-	public auto dup() immutable { return Location(this.line, this.column); }
+	public auto dup() pure { return Location(this.line, this.column); }
 }
 unittest
 {
