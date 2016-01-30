@@ -1,7 +1,8 @@
 language: d
 
 install:
-- wget -q -O - "http://bit.ly/Doveralls" | bash
+- wget -q -O - "http://bit.ly/Doveralls" > doveralls_script.sh
+- bash ./doveralls_script.sh
 - chmod +x doveralls
 
 script:
