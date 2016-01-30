@@ -15,6 +15,10 @@ struct Location
 	/// Duplicate object
 	public auto dup() immutable { return Location(this.line, this.column); }
 }
+unittest
+{
+	assert(Location(3, 3).dup == Location(3, 3));
+}
 
 /+ utility functions +/
 /// Forward column(s)
