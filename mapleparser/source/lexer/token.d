@@ -15,11 +15,6 @@ final struct Token
 	private ValueType _val;
 	private bool has_value = false;
 	
-	/// Immutable Duplication
-	public @property dup() immutable pure
-	{
-		return Token(this._at, this._type, this._val, this.has_value);
-	}
 	/// Duplication
 	public @property dup() pure
 	{
@@ -95,6 +90,9 @@ public @property:
 unittest
 {
 	assert(Token(Location.init, TokenType.Identifier, "test").dup == Token(Location.init, TokenType.Identifier, "test"));
+	assert(Token(Location(4, 3), TokenType.Identifier, "test").at == Location(4, 3));
+	assert(Token(Location(4, 3), TokenType.Identifier, "test").hasValue);
+	assert(!Token(Location(4, 3), TokenType.Plus2).hasValue);
 }
 
 /// List of token(Infinite lazy list)

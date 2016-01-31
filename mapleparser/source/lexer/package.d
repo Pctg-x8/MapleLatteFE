@@ -41,9 +41,9 @@ unittest
 			tuple(TokenType.CharacterLiteral, "b"),
 			tuple(TokenType.CharacterLiteral, "\"")
 		]));
-	assert("00123 34.567f 68.3d .4f 3.0f 63D 0x13 0x244u".asTokenList.take(8).map!(a => a.type)
+	assert("00123 34.567f 68.3d .4f 3.0 63D 0x13 0x244u".asTokenList.take(8).map!(a => a.type)
 		.equal([TokenType.LongLiteral, TokenType.FloatLiteral, TokenType.DoubleLiteral, TokenType.FloatLiteral,
-		TokenType.FloatLiteral, TokenType.DoubleLiteral, TokenType.LongLiteral, TokenType.UlongLiteral]));
+		TokenType.NumericLiteral, TokenType.DoubleLiteral, TokenType.LongLiteral, TokenType.UlongLiteral]));
 	assert("var a = 0, b = 2.45f, c = \"Test Literal\";".asTokenList.take(14).map!(a => a.type)
 		.equal([TokenType.Identifier, TokenType.Identifier, TokenType.Equal, TokenType.LongLiteral,
 		TokenType.Comma, TokenType.Identifier, TokenType.Equal, TokenType.FloatLiteral, TokenType.Comma,

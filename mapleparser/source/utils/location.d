@@ -20,6 +20,7 @@ struct Location
 unittest
 {
 	assert(Location(3, 3).dup == Location(3, 3));
+	assert(Location(3, 3).toString == "3:3");
 }
 
 /+ utility functions +/
