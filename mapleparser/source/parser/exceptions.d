@@ -6,5 +6,5 @@ import mlfe.mapleparser.utils.location;
 /// Raised in rule
 public class ParseException : Exception
 {
-	public this(string msg, Location at) { super(msg ~ " at " ~ at.toString()); }
+	public this(string msg, Location at) pure { super(msg ~ " at " ~ at.toString()); }
 }
