@@ -1,6 +1,7 @@
 module mlfe.mapleparser.parser;
 
 // Parser //
+public import mlfe.mapleparser.parser.exceptions;
 public import mlfe.mapleparser.parser.expression;
 import mlfe.mapleparser.lexer;
 import std.container, std.range;
@@ -8,13 +9,17 @@ import std.container, std.range;
 /// Generates Abstract Syntax Tree from TokenList
 void asSyntaxTree(TokenList input)
 {
-	scope auto rest = PrimaryExpression.parse(input);
-	if(rest.front.type != TokenType.EndOfScript) assert(false);
+	scope auto rest = Expression.parse(input);
+	if(rest.front.type != TokenType.EndOfScript) throw new ParseException("Script not terminated.", rest.front.at);
 }
 
 unittest
 {
-	"123456".asTokenList.asSyntaxTree;
-	"\"test\"".asTokenList.asSyntaxTree;
-	"this".asTokenList.asSyntaxTree;
+	import std.exception : assertThrown, assertNotThrown;
+	
+	assertNotThrown!ParseException("123456".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("\"test\"".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("this".asTokenList.asSyntaxTree);
+	assertThrown!ParseException("super.this".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("(122 )".asTokenList.asSyntaxTree);
 }
