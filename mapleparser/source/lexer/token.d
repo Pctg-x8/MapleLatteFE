@@ -20,6 +20,11 @@ final struct Token
 	{
 		return Token(this._at, this._type, this._val, this.has_value);
 	}
+	/// Duplication
+	public @property dup() pure
+	{
+		return Token(this._at, this._type, this._val, this.has_value);
+	}
 	
 	/// Private constructor for idup
 	private this(Location l, TokenType t, ValueType v, bool hv) pure
@@ -86,6 +91,10 @@ public @property:
 	auto value(T)() const { return this._val.get!T; }
 	/// Has a value
 	auto hasValue() const { return this.has_value; }
+}
+unittest
+{
+	assert(Token(Location.init, TokenType.Identifier, "test").dup == Token(Location.init, TokenType.Identifier, "test"));
 }
 
 /// List of token(Infinite lazy list)

@@ -19,40 +19,33 @@ auto parseToken1(immutable SourceObject input)
 	return ReturnValue(ret.rest, ret.token);
 }
 
+/// Data constructor for single string parsing
+TokenList asTokenList(string input) { return TokenList(SourceObject(input, Location.init)); }
+
 unittest
 {
-	/*void test(string Name, alias Func)()
-	{
-		import std.datetime : StopWatch;
-		import std.stdio : writeln;
-		
-		StopWatch sw;
-		sw.start();
-		scope(exit)
-		{
-			sw.stop();
-			writeln("Test \"", Name, "\" finished. time = ", sw.peek.usecs, " us");
-		}
-		static if(is(typeof(Func()) == TokenList))
-		{
-			Func().dumpList();
-		}
-		else
-		{
-			Func();
-		}
-	}*/
-	
 	import std.range : isInputRange, take;
 	import std.algorithm : equal, map;
+	
 	assert(isInputRange!TokenList);
 	assert(TokenList(SourceObject("testにゃー", Location.init)).take(2).map!(a => a.type)
 		.equal([TokenType.Identifier, TokenType.EndOfScript]));
-	
-	// test!("Input Sanitize Test", () => Lexer.fromString("testにゃー").parse());
-	// test!("SkippingElementsTest", () => Lexer.fromString("/* blocked */\n\t	 // commend\n// comment with eof").parse());
-	// test!("OperatorTokenScanningTest", () => Lexer.fromString("/* blocked */++->**/**/%=% =#").parse());
-	// test!("LiteralScanningTest1", () => Lexer.fromString("\"string literal\"/* aa */'a' 'b' '\\\"'").parse());
-	// test!("NumericLiteralScanningTest", () => Lexer.fromString("00123 34.567f 68.3d .4f 3.f 63D 0x13 0x244u").parse());
-	// test!("IdentifierScanningTest", () => Lexer.fromString("var a = 0, b = 2.45f, c = \"Test Literal\";").parse());
+	assert("/* blocked */\n\t	 // commend\n// comment with eof".asTokenList.front.type == TokenType.EndOfScript);
+	assert("/* blocked */++->**/**/%=% =#".asTokenList.take(8).map!(a => a.type).equal([TokenType.Plus2, 
+		TokenType.Minus_RightAngleBracket, TokenType.Asterisk2, TokenType.Percent_Equal, TokenType.Percent,
+		TokenType.Equal, TokenType.Sharp, TokenType.EndOfScript]));
+	assert("\"string literal\"/* aa */'a' 'b' '\\\"'".asTokenList.take(4).map!(a => tuple(a.type, a.value!string))
+		.equal([
+			tuple(TokenType.StringLiteral, "string literal"),
+			tuple(TokenType.CharacterLiteral, "a"),
+			tuple(TokenType.CharacterLiteral, "b"),
+			tuple(TokenType.CharacterLiteral, "\"")
+		]));
+	assert("00123 34.567f 68.3d .4f 3.0f 63D 0x13 0x244u".asTokenList.take(8).map!(a => a.type)
+		.equal([TokenType.LongLiteral, TokenType.FloatLiteral, TokenType.DoubleLiteral, TokenType.FloatLiteral,
+		TokenType.FloatLiteral, TokenType.DoubleLiteral, TokenType.LongLiteral, TokenType.UlongLiteral]));
+	assert("var a = 0, b = 2.45f, c = \"Test Literal\";".asTokenList.take(14).map!(a => a.type)
+		.equal([TokenType.Identifier, TokenType.Identifier, TokenType.Equal, TokenType.LongLiteral,
+		TokenType.Comma, TokenType.Identifier, TokenType.Equal, TokenType.FloatLiteral, TokenType.Comma,
+		TokenType.Identifier, TokenType.Equal, TokenType.StringLiteral, TokenType.Semicolon, TokenType.EndOfScript]));
 }
