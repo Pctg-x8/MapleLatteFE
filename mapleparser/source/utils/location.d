@@ -14,6 +14,8 @@ struct Location
 	public auto toString() const nothrow { return to!string(this.line) ~ ":" ~ to!string(this.column); }
 	/// Duplicate object
 	public auto dup() pure { return Location(this.line, this.column); }
+	/// Duplicate object
+	public auto dup() immutable pure { return Location(this.line, this.column); }
 }
 unittest
 {

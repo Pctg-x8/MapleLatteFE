@@ -13,7 +13,7 @@ pure auto isLineBreaker(dchar ch) { return ch == '\n' || ch == '\r'; }
 pure auto isSpaceChar(dchar ch) { return ch == ' ' || ch == '\t' || ch.isLineBreaker; }
 
 /// Skip any spaces
-auto skipSpaces(immutable(SourceObject) src)
+auto skipSpaces(immutable(SourceObject) src) pure
 {
 	static SourceObject recursive(immutable(SourceObject) src)
 	{
@@ -22,7 +22,7 @@ auto skipSpaces(immutable(SourceObject) src)
 	return recursive(src);
 }
 /// Skip comments
-auto skipComments(immutable(SourceObject) src)
+auto skipComments(immutable(SourceObject) src) pure
 {
 	static SourceObject recursive(immutable(SourceObject) src)
 	{

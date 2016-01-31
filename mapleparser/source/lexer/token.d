@@ -1,84 +1,79 @@
 module mlfe.mapleparser.lexer.token;
 
+import mlfe.mapleparser.lexer : parseToken1;
 import mlfe.mapleparser.utils.location;
+import mlfe.mapleparser.lexer.source;
 public import std.container;
-import std.variant, std.conv;
+import std.variant, std.conv, std.range;
 
 /// A token
-final class Token
+final struct Token
 {
 	private alias ValueType = Algebraic!(string, real, float, double, long, ulong);
 	private Location _at;
 	private TokenType _type;
 	private ValueType _val;
 	private bool has_value = false;
-	private string vstr;
 	
 	/// Immutable Duplication
-	public @property idup() immutable
+	public @property dup() immutable pure
 	{
-		return new Token(this._at, this._type, this._val, this.has_value, this.vstr);
+		return Token(this._at, this._type, this._val, this.has_value);
 	}
 	
 	/// Private constructor for idup
-	private this(Location l, TokenType t, ValueType v, bool hv, immutable(string) vs)
+	private this(Location l, TokenType t, ValueType v, bool hv) pure
 	{
 		this._at = l;
 		this._type = t;
 		this._val = v;
 		this.has_value = hv;
-		this.vstr = vs.idup;
 	}
 	
 	/// Construct token
-	public this(Location a, TokenType t)
+	public this(Location a, TokenType t) pure
 	{
 		this._at = a;
 		this._type = t;
 	}
 	/// Construct token with string value
-	public this(Location a, TokenType t, immutable(string) v)
+	public this(Location a, TokenType t, immutable(string) v) pure
 	{
 		this._at = a;
 		this._type = t;
 		this._val = v.idup;
-		this.vstr = v.idup;
 		this.has_value = true;
 	}
 	/// Construct token with real value
-	public this(Location a, TokenType t, real r)
+	public this(Location a, TokenType t, real r) pure
 	{
 		this._at = a;
 		this._type = t;
 		this._val = r;
-		this.vstr = r.to!string;
 		this.has_value = true;
 	}
 	/// Construct token with float value
-	public this(Location a, TokenType t, float f)
+	public this(Location a, TokenType t, float f) pure
 	{
 		this._at = a;
 		this._type = t;
 		this._val = f;
-		this.vstr = f.to!string;
 		this.has_value = true;
 	}
 	/// Construct token with double value
-	public this(Location a, TokenType t, double d)
+	public this(Location a, TokenType t, double d) pure
 	{
 		this._at = a;
 		this._type = t;
 		this._val = d;
-		this.vstr = d.to!string;
 		this.has_value = true;
 	}
 	/// Construct token with long value
-	public this(Location a, TokenType t, long l)
+	public this(Location a, TokenType t, long l) pure
 	{
 		this._at = a;
 		this._type = t;
 		this._val = l;
-		this.vstr = l.to!string;
 		this.has_value = true;
 	}
 	
@@ -91,12 +86,51 @@ public @property:
 	auto value(T)() const { return this._val.get!T; }
 	/// Has a value
 	auto hasValue() const { return this.has_value; }
-	/// Value of token as string
-	auto valueStr() const { return this.vstr; }
 }
 
-/// TokenList(alias to std.container.DList!Token)
-alias TokenList = Token[];
+/// List of token(Infinite lazy list)
+public struct TokenList
+{
+	private SourceObject rest_source;
+	private bool has_stock = false;
+	private Token current_stock;
+	private SourceObject rest_next;
+	
+	private @property pointer_at() { return this.rest_source.current; }
+	
+	/// Construct from source
+	public this(SourceObject from)
+	{
+		this.rest_source = from;
+		this.has_stock = false;
+	}
+	
+	/// Range Primitive: Returns if range is empty(always false)
+	immutable bool empty = false;
+	/// Range Primitive: Front element
+	public @property Token front()
+	{
+		if(this.rest_source.range.empty) return Token(this.pointer_at, TokenType.EndOfScript);
+		if(!this.has_stock) this.parseToken();
+		return this.current_stock;
+	}
+	/// Range Primitive: popFront
+	public void popFront()
+	{
+		if(this.rest_source.range.empty) return;
+		if(!this.has_stock) this.parseToken();
+		this.rest_source = this.rest_next;
+		this.has_stock = false;
+	}
+	
+	private void parseToken()
+	{
+		auto values = this.rest_source.parseToken1();
+		this.rest_next = values[0];
+		this.current_stock = values[1];
+		this.has_stock = true;
+	}
+}
 
 /// Types of token
 enum TokenType

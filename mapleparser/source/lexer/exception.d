@@ -6,7 +6,7 @@ import mlfe.mapleparser.utils.location;
 final class LexicalizeError : Exception
 {
 	/// Construct with location
-	public this(Location loc) { super("Lexicalize Error at " ~ loc.toString); }
+	public this(Location loc) pure { super("Lexicalize Error at " ~ loc.toString); }
 	/// Construct with message
-	public this(Location loc, string msg) { super(msg ~ " at " ~ loc.toString); }
+	public this(Location loc, string msg) pure { super(msg ~ " at " ~ loc.toString); }
 }

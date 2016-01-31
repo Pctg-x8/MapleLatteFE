@@ -6,6 +6,7 @@ import mlfe.mapleparser.lexer.exception;
 import mlfe.mapleparser.lexer.token;
 import mlfe.mapleparser.lexer.spaces;
 import std.range, std.algorithm, std.utf : toUTF8;
+import std.functional, std.typecons;
 
 /// Result of getToken
 struct Get_TokenResult
@@ -15,83 +16,94 @@ struct Get_TokenResult
 	/// Rest sources
 	SourceObject rest;
 }
-/// Data constructor
 /// Token rules
-auto getToken(immutable(SourceObject) src)
+auto getToken(immutable SourceObject src) pure
 {
-	auto makeResult(size_t fwd, TokenType tp)()
+	auto TokenResult(size_t fwd, TokenType tp) pure
 	{
-		return Get_TokenResult(new Token(src.current, tp), src.forward(fwd));
+		return Get_TokenResult(Token(src.current, tp), src.forward(fwd));
 	}
 	
-	if(src.range.count >= 3) switch(src.range[0 .. 3])
+	if(src.range.count >= 3)
 	{
-	case "<<=": return makeResult!(3, TokenType.LeftAngleBracket2_Equal);
-	case ">>=": return makeResult!(3, TokenType.RightAngleBracket2_Equal);
-	default: break;
+		alias Value = partial!(TokenResult, 3);
+		
+		switch(src.range[0 .. 3])
+		{
+		case "<<=": return Value(TokenType.LeftAngleBracket2_Equal);
+		case ">>=": return Value(TokenType.RightAngleBracket2_Equal);
+		default: break;
+		}
 	}
-	if(src.range.count >= 2) switch(src.range[0 .. 2])
+	if(src.range.count >= 2)
 	{
-	case "0x": return parseHexadecimalLiteral(src);
-	case "++": return makeResult!(2, TokenType.Plus2);
-	case "--": return makeResult!(2, TokenType.Minus2);
-	case "**": return makeResult!(2, TokenType.Asterisk2);
-	case "<<": return makeResult!(2, TokenType.LeftAngleBracket2);
-	case ">>": return makeResult!(2, TokenType.RightAngleBracket2);
-	case "&&": return makeResult!(2, TokenType.Ampasand2);
-	case "||": return makeResult!(2, TokenType.VerticalLine2);
-	case "==": return makeResult!(2, TokenType.Equal2);
-	case "+=": return makeResult!(2, TokenType.Plus_Equal);
-	case "-=": return makeResult!(2, TokenType.Minus_Equal);
-	case "*=": return makeResult!(2, TokenType.Asterisk_Equal);
-	case "/=": return makeResult!(2, TokenType.Slash_Equal);
-	case "%=": return makeResult!(2, TokenType.Percent_Equal);
-	case "&=": return makeResult!(2, TokenType.Ampasand_Equal);
-	case "|=": return makeResult!(2, TokenType.VerticalLine_Equal);
-	case "^=": return makeResult!(2, TokenType.Accent_Equal);
-	case "<=": return makeResult!(2, TokenType.LeftAngleBracket_Equal);
-	case ">=": return makeResult!(2, TokenType.RightAngleBracket_Equal);
-	case "!=": return makeResult!(2, TokenType.Exclamation_Equal);
-	case "<>": return makeResult!(2, TokenType.Exclamation_Equal);
-	case "->": return makeResult!(2, TokenType.Minus_RightAngleBracket);
-	case "<-": return makeResult!(2, TokenType.LeftAngleBracket_Minus);
-	default: break;
+		alias Value = partial!(TokenResult, 2);
+		
+		switch(src.range[0 .. 2])
+		{
+		case "0x": return parseHexadecimalLiteral(src);
+		case "++": return Value(TokenType.Plus2);
+		case "--": return Value(TokenType.Minus2);
+		case "**": return Value(TokenType.Asterisk2);
+		case "<<": return Value(TokenType.LeftAngleBracket2);
+		case ">>": return Value(TokenType.RightAngleBracket2);
+		case "&&": return Value(TokenType.Ampasand2);
+		case "||": return Value(TokenType.VerticalLine2);
+		case "==": return Value(TokenType.Equal2);
+		case "+=": return Value(TokenType.Plus_Equal);
+		case "-=": return Value(TokenType.Minus_Equal);
+		case "*=": return Value(TokenType.Asterisk_Equal);
+		case "/=": return Value(TokenType.Slash_Equal);
+		case "%=": return Value(TokenType.Percent_Equal);
+		case "&=": return Value(TokenType.Ampasand_Equal);
+		case "|=": return Value(TokenType.VerticalLine_Equal);
+		case "^=": return Value(TokenType.Accent_Equal);
+		case "<=": return Value(TokenType.LeftAngleBracket_Equal);
+		case ">=": return Value(TokenType.RightAngleBracket_Equal);
+		case "!=": return Value(TokenType.Exclamation_Equal);
+		case "<>": return Value(TokenType.Exclamation_Equal);
+		case "->": return Value(TokenType.Minus_RightAngleBracket);
+		case "<-": return Value(TokenType.LeftAngleBracket_Minus);
+		default: break;
+		}
 	}
+	
+	alias Value = partial!(TokenResult, 1);
 	switch(src.range.front)
 	{
 	case '0': .. case '9': return parseNumericLiteral(src);
 	case '"': return parseStringToken(src);
 	case '\'': return parseCharacterToken(src);
-	case '+': return makeResult!(1, TokenType.Plus);
-	case '-': return makeResult!(1, TokenType.Minus);
-	case '*': return makeResult!(1, TokenType.Asterisk);
-	case '/': return makeResult!(1, TokenType.Slash);
-	case '%': return makeResult!(1, TokenType.Percent);
-	case '&': return makeResult!(1, TokenType.Ampasand);
-	case '|': return makeResult!(1, TokenType.VerticalLine);
-	case '^': return makeResult!(1, TokenType.Accent);
-	case '<': return makeResult!(1, TokenType.LeftAngleBracket);
-	case '>': return makeResult!(1, TokenType.RightAngleBracket);
-	case '=': return makeResult!(1, TokenType.Equal);
-	case '!': return makeResult!(1, TokenType.Exclamation);
-	case '~': return makeResult!(1, TokenType.Tilda);
-	case '?': return makeResult!(1, TokenType.Hatena);
-	case '#': return makeResult!(1, TokenType.Sharp);
-	case ':': return makeResult!(1, TokenType.Colon);
-	case ';': return makeResult!(1, TokenType.Semicolon);
-	case ',': return makeResult!(1, TokenType.Comma);
+	case '+': return Value(TokenType.Plus);
+	case '-': return Value(TokenType.Minus);
+	case '*': return Value(TokenType.Asterisk);
+	case '/': return Value(TokenType.Slash);
+	case '%': return Value(TokenType.Percent);
+	case '&': return Value(TokenType.Ampasand);
+	case '|': return Value(TokenType.VerticalLine);
+	case '^': return Value(TokenType.Accent);
+	case '<': return Value(TokenType.LeftAngleBracket);
+	case '>': return Value(TokenType.RightAngleBracket);
+	case '=': return Value(TokenType.Equal);
+	case '!': return Value(TokenType.Exclamation);
+	case '~': return Value(TokenType.Tilda);
+	case '?': return Value(TokenType.Hatena);
+	case '#': return Value(TokenType.Sharp);
+	case ':': return Value(TokenType.Colon);
+	case ';': return Value(TokenType.Semicolon);
+	case ',': return Value(TokenType.Comma);
 	case '.': return parsePeriodOrNumericLiteral(src);
-	case '(': return makeResult!(1, TokenType.OpenParenthese);
-	case ')': return makeResult!(1, TokenType.CloseParenthese);
-	case '{': return makeResult!(1, TokenType.OpenBrace);
-	case '}': return makeResult!(1, TokenType.CloseBrace);
-	case '[': return makeResult!(1, TokenType.OpenBracket);
-	case ']': return makeResult!(1, TokenType.CloseBracket);
+	case '(': return Value(TokenType.OpenParenthese);
+	case ')': return Value(TokenType.CloseParenthese);
+	case '{': return Value(TokenType.OpenBrace);
+	case '}': return Value(TokenType.CloseBrace);
+	case '[': return Value(TokenType.OpenBracket);
+	case ']': return Value(TokenType.CloseBracket);
 	default: break;
 	}
 	
 	// Fallthroughed Characters: Identifier
-	SourceObject src2 = src;
+	auto src2 = src.dup;
 	string id_temp;
 	while(!src2.range.empty)
 	{
@@ -104,190 +116,168 @@ auto getToken(immutable(SourceObject) src)
 	}
 	if(!id_temp.empty)
 	{
-		auto makeToken(TokenType T)() { return Get_TokenResult(new Token(src2.current, T), src2); }
+		auto makeToken(TokenType T)() { return Get_TokenResult(Token(src.current, T), src2); }
 		
 		switch(id_temp)
 		{
 		case "package": return makeToken!(TokenType.Package);
 		case "this": return makeToken!(TokenType.This);
 		case "super": return makeToken!(TokenType.Super);
-		default: return Get_TokenResult(new Token(src2.current, TokenType.Identifier, id_temp), src2);
+		default: return Get_TokenResult(Token(src.current, TokenType.Identifier, id_temp), src2);
 		}
 	}
 	
 	throw new LexicalizeError(src.current, "No match tokens found.");
 }
 
-/// Parse characters as string literal
-auto parseStringToken(immutable(SourceObject) src)
+alias CharValue = Tuple!(dchar, SourceObject);
+/// Parse character in literal
+auto parseAsCharacter(immutable SourceObject input) pure
 {
-	auto src2 = src.forward(1);
-	string temp;
-	
-	bool succeeded = false;
-	while(!src2.range.empty)
+	return input.range.front == '\\' ? input.parseAsEscapedCharacter() : CharValue(input.range.front, input.followOne);
+}
+/// Parse escaped character in literal
+auto parseAsEscapedCharacter(immutable SourceObject input) pure
+{
+	if(input.range.count <= 1) throw new LexicalizeError(input.current, "Invalid escape sequence");
+	switch(input.range.dropOne.front)
 	{
-		if(src2.range.front == '"') { succeeded = true; break; }
-		auto ret = src2.parseAsCharacter();
-		temp ~= ret.chr;
-		src2 = ret.rest;
+	case 'n': return CharValue('\n', input.forward(2));
+	case 't': return CharValue('\t', input.forward(2));
+	case 'r': return CharValue('\r', input.forward(2));
+	default: return CharValue(input.range.dropOne.front, input.forward(1).followOne);
 	}
-	if(!succeeded) throw new LexicalizeError(src.current, "String literal is not enclosed");
-	return Get_TokenResult(new Token(src.current, TokenType.StringLiteral, temp), src2.forward(1));
+}
+
+/// Parse characters as string literal
+auto parseStringToken(immutable SourceObject input) pure
+{
+	auto content_range = input.forward(1);
+	string temp = "";
+	while(true)
+	{
+		if(content_range.range.empty) throw new LexicalizeError(content_range.current, "String literal is not enclosed");
+		if(content_range.range.front == '"') break;
+		auto ret = content_range.parseAsCharacter();
+		temp ~= ret[0];
+		content_range = ret[1];
+	}
+	return Get_TokenResult(Token(input.current, TokenType.StringLiteral, temp), content_range.forward(1));
 }
 /// Parse character literal
-auto parseCharacterToken(immutable(SourceObject) src)
+auto parseCharacterToken(immutable SourceObject input) pure
 {
-	auto src2 = src.forward(1);
-	if(src2.range.front == '\'') throw new LexicalizeError(src.current, "Empty character literal is not allowed");
-	auto ret = src2.parseAsCharacter();
-	if(ret.rest.range.empty || ret.rest.range.front != '\'')
-	{
-		throw new LexicalizeError(src.current, "Character literal is not enclosed");
-	}
-	return Get_TokenResult(new Token(src.current, TokenType.CharacterLiteral, toUTF8([ret.chr])), ret.rest.forward(1));
-}
-
-/// Result of parsing character
-struct CharParseResult
-{
-	/// Retrieved character
-	dchar chr;
-	/// Rest source
-	SourceObject rest;	
-}
-/// Parse a characters
-auto parseAsCharacter(immutable(SourceObject) src)
-{
-	return src.range.front != '\\' ? CharParseResult(src.range.front, src.followOne) : parseAsEscapedCharacter(src);
-}
-/// Parse a escaped characters
-auto parseAsEscapedCharacter(immutable(SourceObject) src)
-{
-	auto r = src.range.dropOne, l = src.current.forward;
-	switch(r.front)
-	{
-	case 'n': return CharParseResult('\n', SourceObject(r.dropOne, l.forward));
-	case 't': return CharParseResult('\t', SourceObject(r.dropOne, l.forward));
-	case 'r': return CharParseResult('\r', SourceObject(r.dropOne, l.forward));
-	default: return CharParseResult(r.front, SourceObject(r.dropOne, l.forward));
-	}
-}
-
-/// Parse range as single period or numeric omitted int-part.
-auto parsePeriodOrNumericLiteral(immutable(SourceObject) src)
-{
-	auto r = src.range.dropOne, l = src.current.forward;
+	auto content_range = input.forward(1);
+	void exception() pure { throw new LexicalizeError(content_range.current, "Invalid character literal"); }
 	
-	if(r.empty || '0' > r.front || r.front > '9')
-	{
-		return Get_TokenResult(new Token(src.current, TokenType.Period), SourceObject(r, l));
-	}
-	real frac_part = 0.0, divs = 10.0;
-	while(!r.empty && ('0' <= r.front && r.front <= '9'))
-	{
-		frac_part += (r.front - '0') / divs;
-		divs *= 10.0;
-		r = r.dropOne;
-		l = l.forward;
-	}
-	if(!r.empty)
-	{
-		switch(r.front)
-		{
-		case 'f': case 'F':
-			return Get_TokenResult(new Token(src.current, TokenType.FloatLiteral,
-				cast(float)frac_part), SourceObject(r.dropOne, l.forward));
-		case 'd': case 'D':
-			return Get_TokenResult(new Token(src.current, TokenType.DoubleLiteral,
-				cast(double)frac_part), SourceObject(r.dropOne, l.forward));
-		default: break;
-		}
-	}
-	return Get_TokenResult(new Token(src.current, TokenType.NumericLiteral, frac_part), SourceObject(r, l));
+	if(content_range.range.empty) exception();
+	auto chr = content_range.parseAsCharacter();
+	if(chr[1].range.empty || chr[1].range.front != '\'') exception();
+	return Get_TokenResult(Token(input.current, TokenType.CharacterLiteral, [chr[0]].toUTF8), chr[1].forward(1));
 }
-/// Parse range as some numeric literal
-auto parseNumericLiteral(SourceObject src)
+
+/// Character is in range(a <= v <= b)
+auto isInRange(dchar v, dchar a, dchar b) pure in { assert(a < b); } body
 {
-	auto r = src.range, l = src.current;
-	ulong int_part = 0;
-	while(!r.empty && ('0' <= r.front && r.front <= '9'))
+	return a <= v && v <= b;
+} 
+
+/// Parse range as single period or ipart-omitted numeric literal
+auto parsePeriodOrNumericLiteral(immutable SourceObject input) pure
+{
+	if(input.range.dropOne.empty || !input.range.dropOne.front.isInRange('0', '9'))
 	{
-		int_part = int_part * 10 + (r.front - '0');
-		r = r.dropOne; l = l.forward;
+		return Get_TokenResult(Token(input.current, TokenType.Period), input.forward(1));
 	}
-	if(!r.empty)
+	else return input.parseNumericLiteral();
+}
+/// Parse range as some numeric literals
+auto parseNumericLiteral(immutable SourceObject input) pure
+{
+	auto current_range = input.dup;
+	ulong ipart = 0;
+	while(!current_range.range.empty && current_range.range.front.isInRange('0', '9'))
 	{
-		switch(r.front)
+		ipart = ipart * 10 + (current_range.range.front - '0');
+		current_range = current_range.forward(1);
+	}
+	
+	if(!current_range.range.empty)
+	{
+		// Following action by post-literal
+		switch(current_range.range.front)
 		{
-		case 'f': case 'F':
-			return Get_TokenResult(new Token(src.current, TokenType.FloatLiteral, cast(float)int_part),
-				SourceObject(r.dropOne, l.forward));
-		case 'd': case 'D':
-			return Get_TokenResult(new Token(src.current, TokenType.DoubleLiteral, cast(double)int_part),
-				SourceObject(r.dropOne, l.forward));
 		case 'u': case 'U':
-			return Get_TokenResult(new Token(src.current, TokenType.UlongLiteral, int_part),
-				SourceObject(r.dropOne, l.forward));
+			return Get_TokenResult(Token(input.current, TokenType.UlongLiteral, ipart), current_range.forward(1));
+		case 'f': case 'F':
+			return Get_TokenResult(Token(input.current, TokenType.FloatLiteral, cast(float)ipart), current_range.forward(1));
+		case 'd': case 'D':
+			return Get_TokenResult(Token(input.current, TokenType.DoubleLiteral, cast(double)ipart), current_range.forward(1));
 		default: break;
 		}
 	}
-	if(r.empty || r.front != '.')
+	if(current_range.range.empty || current_range.range.front != '.')
 	{
-		return Get_TokenResult(new Token(src.current, TokenType.LongLiteral, cast(long)int_part), SourceObject(r, l));
+		// as long
+		return Get_TokenResult(Token(input.current, TokenType.LongLiteral, ipart), current_range);
 	}
-	r = r.dropOne; l = l.forward;
-	real frac_part = 0.0, divs = 10.0;
-	while(!r.empty && ('0' <= r.front && r.front <= '9'))
+	
+	// process following period
+	auto period_ptr = current_range;
+	current_range = current_range.forward(1);
+	if(current_range.range.empty || !current_range.range.front.isInRange('0', '9'))
 	{
-		frac_part += (r.front - '0') / divs;
+		// unread period(passing to next)
+		return Get_TokenResult(Token(input.current, TokenType.LongLiteral, ipart), period_ptr);
+	}
+	real fpart = 0.0, divs = 10.0;
+	while(!current_range.range.empty && current_range.range.front.isInRange('0', '9'))
+	{
+		fpart += (current_range.range.front - '0') / divs;
 		divs *= 10.0;
-		r = r.dropOne;
-		l = l.forward;
+		current_range = current_range.forward(1);
 	}
-	if(!r.empty)
+	if(!current_range.range.empty)
 	{
-		switch(r.front)
+		switch(current_range.range.front)
 		{
 		case 'f': case 'F':
-			return Get_TokenResult(new Token(src.current, TokenType.FloatLiteral,
-				cast(float)int_part + cast(float)frac_part), SourceObject(r.dropOne, l.forward));
+			return Get_TokenResult(Token(input.current, TokenType.FloatLiteral, cast(float)(ipart + fpart)),
+				current_range.forward(1));
 		case 'd': case 'D':
-			return Get_TokenResult(new Token(src.current, TokenType.DoubleLiteral,
-				cast(double)int_part + cast(float)frac_part), SourceObject(r.dropOne, l.forward));
+			return Get_TokenResult(Token(input.current, TokenType.DoubleLiteral, cast(double)(ipart + fpart)),
+				current_range.forward(1));
 		default: break;
 		}
 	}
-	return Get_TokenResult(new Token(src.current, TokenType.NumericLiteral, cast(real)int_part + frac_part),
-		SourceObject(r, l));
+	return Get_TokenResult(Token(input.current, TokenType.NumericLiteral, ipart + fpart), current_range);
 }
 /// Parse range as hexadecimal literal
-auto parseHexadecimalLiteral(immutable(SourceObject) src)
+auto parseHexadecimalLiteral(immutable SourceObject input) pure
 {
-	pure static auto isHexdCharacter(dchar c)
+	import std.uni : toLower;
+	
+	static bool isHexCharacter(dchar c) pure
 	{
-		return ('0' <= c && c < '9') || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F');
+		return c.isInRange('0', '9') || c.toLower.isInRange('a', 'f');
 	}
 	
-	auto r = src.range.drop(2), l = src.current.forward(2);
-	ulong int_part = 0;
-	while(!r.empty && isHexdCharacter(r.front))
+	auto body_range = input.forward(2);
+	ulong ipart = 0;
+	while(!body_range.range.empty && isHexCharacter(body_range.range.front))
 	{
-		int_part <<= 4;
-		if('0' <= r.front && r.front <= '9') int_part |= (r.front - '0') & 0x0f;
-		else if('a' <= r.front && r.front <= 'f') int_part |= (r.front - 'a') & 0x0f + 0x0a;
-		else int_part |= (r.front - 'A') & 0x0f + 0x0a;
-		r = r.dropOne; l = l.forward;
-	}
-	if(!r.empty)
-	{
-		switch(r.front)
+		ipart <<= 4;
+		switch(body_range.range.front.toLower)
 		{
-		case 'u': case 'U':
-			return Get_TokenResult(new Token(src.current, TokenType.UlongLiteral, int_part),
-				SourceObject(r.dropOne, l.forward));
-		default: break;
+		case '0': .. case '9': ipart |= body_range.range.front - '0'; break;
+		case 'a': .. case 'f': ipart |= 0x0a + (body_range.range.front - 'a'); break;
+		default: assert(false);
 		}
+		body_range = body_range.forward(1);
 	}
-	return Get_TokenResult(new Token(src.current, TokenType.LongLiteral, cast(long)int_part), SourceObject(r, l));
+	if(!body_range.range.empty && body_range.range.front.toLower == 'u')
+	{
+		return Get_TokenResult(Token(input.current, TokenType.UlongLiteral, ipart), body_range.forward(1));
+	}
+	return Get_TokenResult(Token(input.current, TokenType.LongLiteral, ipart), body_range);
 }

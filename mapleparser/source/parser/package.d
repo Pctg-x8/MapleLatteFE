@@ -14,7 +14,7 @@ public final class Parser
 	/// Construct with Token List
 	public this(TokenList list)
 	{
-		this.input = list.dup;
+		this.input = list;
 	}
 	
 	/// Run parser
@@ -27,9 +27,9 @@ public final class Parser
 
 unittest
 {
-	auto tester(string str)() { new Parser(Lexer.fromString(str).parse()).parse(); }
+	/*auto tester(string str)() { new Parser(Lexer.fromString(str).parse()).parse(); }
 	
 	tester!"123456";
 	tester!"\"test\"";
-	tester!"this";
+	tester!"this";*/
 }
