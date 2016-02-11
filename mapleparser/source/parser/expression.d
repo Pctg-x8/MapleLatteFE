@@ -6,13 +6,13 @@ import mlfe.mapleparser.lexer.token;
 import mlfe.mapleparser.parser.exceptions;
 import std.algorithm, std.range;
 
-/// Expression = AddExpression
+/// Expression = TriExpression
 public static class Expression
 {
-	public static immutable canParse = AddExpression.canParse;
+	public static immutable canParse = TriExpression.canParse;
 	public static TokenList parse(TokenList input)
 	{
-		return AddExpression.parse(input);
+		return TriExpression.parse(input);
 	}
 }
 /// ExpressionList = Expression ("," Expression)*
@@ -30,46 +30,55 @@ public static class ExpressionList
 	}
 }
 
+/// TriExpression = LogicalExpression ["?" TriExpression ":" TriExpression]
+public static class TriExpression
+{
+	public static immutable canParse = LogicalExpression.canParse;
+	public static TokenList parse(TokenList input)
+	{
+		auto in2 = LogicalExpression.parse(input);
+		if(in2.front.type == TokenType.Hatena)
+		{
+			return TriExpression.parse(TriExpression.parse(in2.dropOne).consumeToken!(TokenType.Colon));
+		}
+		else return in2;
+	}
+}
+/// BinaryExpression = ContainedRule (Operators[0] ContainedRule | ...)*
+public static class BinaryExpression(ContainedRule, Operators...)
+{
+	static if(is(typeof(ContainedRule.canParse) == function))
+		public static immutable canParse = &ContainedRule.canParse;
+	else
+		public static immutable canParse = ContainedRule.canParse;
+	public static TokenList parse(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			foreach(op; Operators)
+			{
+				if(input.front.type == op) return loop(ContainedRule.parse(input.dropOne));
+			}
+			return input;
+		}
+		return loop(ContainedRule.parse(input));
+	}
+}
+/// LogicalExpression = CompareExpression ("&&" CompareExpression | "||" CompareExpression)*
+alias LogicalExpression = BinaryExpression!(CompareExpression, TokenType.Ampasand2, TokenType.VerticalLine2);
+/// CompareExpression = ShiftExpression ("==" ShiftExpression | "!=" ShiftExpression
+///		| "<" ShiftExpression | ">" ShiftExpression | "<=" ShiftExpression | ">=" ShiftExpression)*
+alias CompareExpression = BinaryExpression!(ShiftExpression, TokenType.Equal2, TokenType.Exclamation_Equal,
+	TokenType.LeftAngleBracket, TokenType.RightAngleBracket,
+	TokenType.LeftAngleBracket_Equal, TokenType.RightAngleBracket_Equal);
+/// ShiftExpression = BitExpression ("<<" BitExpression | ">>" BitExpression)*
+alias ShiftExpression = BinaryExpression!(BitExpression, TokenType.LeftAngleBracket2, TokenType.RightAngleBracket2);
+/// BitExpression = AddExpression ("&" AddExpression | "|" AddExpression | "^" AddExpression)*
+alias BitExpression = BinaryExpression!(AddExpression, TokenType.Ampasand, TokenType.VerticalLine, TokenType.Accent);
 /// AddExpression = MultiExpression ("+" MultiExpression | "-" MultiExpression)*
-public static class AddExpression
-{
-	public static immutable canParse = MultiExpression.canParse;
-	public static TokenList parse(TokenList input)
-	{
-		static TokenList loop(TokenList input)
-		{
-			switch(input.front.type)
-			{
-			case TokenType.Plus: return loop(MultiExpression.parse(input.dropOne));
-			case TokenType.Minus: return loop(MultiExpression.parse(input.dropOne));
-			default: return input;
-			}
-		}
-		
-		return loop(MultiExpression.parse(input));
-	}
-}
-
+alias AddExpression = BinaryExpression!(MultiExpression, TokenType.Plus, TokenType.Minus);
 /// MultiExpression = PrefixExpression ("*" PrefixExpression | "/" PrefixExpression | "%" PrefixExpression)*
-public static class MultiExpression
-{
-	public static immutable canParse = &PrefixExpression.canParse;
-	public static TokenList parse(TokenList input)
-	{
-		static TokenList loop(TokenList input)
-		{
-			switch(input.front.type)
-			{
-			case TokenType.Asterisk: return loop(PrefixExpression.parse(input.dropOne));
-			case TokenType.Slash: return loop(PrefixExpression.parse(input.dropOne));
-			case TokenType.Percent: return loop(PrefixExpression.parse(input.dropOne));
-			default: return input;
-			}
-		}
-		
-		return loop(PrefixExpression.parse(input));
-	}
-}
+alias MultiExpression = BinaryExpression!(PrefixExpression, TokenType.Asterisk, TokenType.Slash, TokenType.Percent);
 
 /// PrefixExpression = "++" PrefixExpression | "--" PrefixExpression | "**" PrefixExpression
 ///		| "+" PrefixExpression | "-" PrefixExpression | PostfixExpression

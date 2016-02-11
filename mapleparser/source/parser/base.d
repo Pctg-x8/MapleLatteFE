@@ -2,6 +2,7 @@ module mlfe.mapleparser.parser.base;
 
 import mlfe.mapleparser.lexer.token;
 import mlfe.mapleparser.parser.exceptions;
+import std.experimental.logger;
 import std.range;
 
 /// Consume specified token or raise exception
