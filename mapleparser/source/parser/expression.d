@@ -1,6 +1,7 @@
 module mlfe.mapleparser.parser.expression;
 
 import mlfe.mapleparser.parser.base;
+import mlfe.mapleparser.parser.symbol;
 import mlfe.mapleparser.lexer.token;
 import mlfe.mapleparser.parser.exceptions;
 import std.algorithm, std.range;
@@ -53,7 +54,7 @@ public static class PrefixExpression
 	}
 }
 
-/// PostfixExpression = PrimaryExpression ("++" | "--" | "**" | "(" [ExpressionList] ")" | "[" Expression "]" | "." Identifier)*
+/// PostfixExpression = PrimaryExpression ("++" | "--" | "**" | "(" [ExpressionList] ")" | "[" Expression "]" | "." TemplateInstance)*
 public static class PostfixExpression
 {
 	public static immutable canParse = &PrimaryExpression.canParse;
@@ -78,7 +79,7 @@ public static class PostfixExpression
 			case TokenType.OpenBracket:
 				return loop(Expression.parse(input.dropOne).consumeToken!(TokenType.CloseBracket));
 			case TokenType.Period:
-				return loop(input.dropOne.consumeToken!(TokenType.Identifier));
+				return loop(TemplateInstance.parse(input.dropOne));
 			default: return input;
 			}
 		}
@@ -87,19 +88,27 @@ public static class PostfixExpression
 	}
 }
 
-/// PrimaryExpression = Literal | SpecialLiteral | ComplexLiteral | "(" Expression ")"
+/// PrimaryExpression = Literal | SpecialLiteral | ComplexLiteral
+///		| TemplateInstance | "." TemplateInstance | "global" "." TemplateInstance" | "(" Expression ")"
 public static class PrimaryExpression
 {
 	public static bool canParse(TokenList input)
 	{
-		return input.front.type == TokenType.OpenParenthese || Literal.canParse(input) || SpecialLiteral.canParse(input) || ComplexLiteral.canParse(input);
+		return input.front.type == TokenType.OpenParenthese || input.front.type == TokenType.Period
+			|| input.front.type == TokenType.Global
+			|| Literal.canParse(input) || SpecialLiteral.canParse(input) || TemplateInstance.canParse(input)
+			|| ComplexLiteral.canParse(input);
 	}
 	public static TokenList parse(TokenList input)
 	{
-		if(input.front.type == TokenType.OpenParenthese)
+		switch(input.front.type)
 		{
-			return Expression.parse(input.dropOne).consumeToken!(TokenType.CloseParenthese);
+		case TokenType.OpenParenthese: return Expression.parse(input.dropOne).consumeToken!(TokenType.CloseParenthese);
+		case TokenType.Period: return TemplateInstance.parse(input.dropOne);
+		case TokenType.Global: return TemplateInstance.parse(input.dropOne.consumeToken!(TokenType.Period));
+		default: break;
 		}
+		if(TemplateInstance.canParse(input)) return TemplateInstance.parse(input);
 		if(Literal.canParse(input)) return Literal.parse(input);
 		if(SpecialLiteral.canParse(input)) return SpecialLiteral.parse(input);
 		if(ComplexLiteral.canParse(input)) return ComplexLiteral.parse(input);

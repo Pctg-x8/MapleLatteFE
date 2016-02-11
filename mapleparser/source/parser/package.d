@@ -26,4 +26,6 @@ unittest
 	assertNotThrown!ParseException("+++2**--".asTokenList.asSyntaxTree);
 	assertNotThrown!ParseException("3.toNormalized(2, 2).length".asTokenList.asSyntaxTree);
 	assertNotThrown!ParseException("[3, 2].normalized.scale(2).length".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("[3, 2].asVector#float.normalized.scale(2).length".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("[3, 2, 2].asVector#(float, 2).scale(2.1f).length".asTokenList.asSyntaxTree);
 }

@@ -108,7 +108,6 @@ auto getToken(immutable SourceObject src) pure
 	while(!src2.range.empty)
 	{
 		if(src2.range.front.isSpaceChar) break;
-		if('0' <= src2.range.front && src2.range.front <= '9') break;
 		if(['"', '\'', '+', '-', '*', '/', '%', '&', '|', '^', '<', '>', '=', '!', '~', '?', '#',
 		':', ';', '.', ',', '(', ')', '[', ']', '{', '}'].any!(a => a == src2.range.front)) break;
 		id_temp ~= src2.range.front;
@@ -123,6 +122,7 @@ auto getToken(immutable SourceObject src) pure
 		case "package": return makeToken!(TokenType.Package);
 		case "this": return makeToken!(TokenType.This);
 		case "super": return makeToken!(TokenType.Super);
+		case "global": return makeToken!(TokenType.Global);
 		default: return Get_TokenResult(Token(src.current, TokenType.Identifier, id_temp), src2);
 		}
 	}
