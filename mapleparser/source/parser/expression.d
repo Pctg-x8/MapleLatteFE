@@ -87,12 +87,12 @@ public static class PostfixExpression
 	}
 }
 
-/// PrimaryExpression = Literal | SpecialLiteral | "(" Expression ")"
+/// PrimaryExpression = Literal | SpecialLiteral | ComplexLiteral | "(" Expression ")"
 public static class PrimaryExpression
 {
 	public static bool canParse(TokenList input)
 	{
-		return input.front.type == TokenType.OpenParenthese || Literal.canParse(input) || SpecialLiteral.canParse(input);
+		return input.front.type == TokenType.OpenParenthese || Literal.canParse(input) || SpecialLiteral.canParse(input) || ComplexLiteral.canParse(input);
 	}
 	public static TokenList parse(TokenList input)
 	{
@@ -102,6 +102,7 @@ public static class PrimaryExpression
 		}
 		if(Literal.canParse(input)) return Literal.parse(input);
 		if(SpecialLiteral.canParse(input)) return SpecialLiteral.parse(input);
+		if(ComplexLiteral.canParse(input)) return ComplexLiteral.parse(input);
 		throw new ParseException("No match rules found", input.front.at);
 	}
 }
@@ -147,5 +148,20 @@ public static class SpecialLiteral
 		case TokenType.Super: return input.dropOne;
 		default: throw new ParseException("No match tokens found", input.front.at);
 		}
+	}
+}
+
+/// ComplexLiteral = "[" [ExpressionList] "]"
+public static class ComplexLiteral
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.OpenBracket;
+	}
+	public static TokenList parse(TokenList input)
+	{
+		auto in2 = input.consumeToken!(TokenType.OpenBracket);
+		if(in2.front.type == TokenType.CloseBracket) return in2.dropOne;
+		else return ExpressionList.parse(in2).consumeToken!(TokenType.CloseBracket);
 	}
 }

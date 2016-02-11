@@ -24,4 +24,6 @@ unittest
 	assertNotThrown!ParseException("(122 )".asTokenList.asSyntaxTree);
 	assertNotThrown!ParseException("++(10.asPointer)".asTokenList.asSyntaxTree);
 	assertNotThrown!ParseException("+++2**--".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("3.toNormalized(2, 2).length".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("[3, 2].normalized.scale(2).length".asTokenList.asSyntaxTree);
 }
