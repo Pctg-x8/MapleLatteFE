@@ -5,16 +5,85 @@ import mlfe.mapleparser.lexer.token;
 import mlfe.mapleparser.parser.exceptions;
 import std.algorithm, std.range;
 
-/// Expression = PrimaryExpression
+/// Expression = PrefixExpression
 public static class Expression
+{
+	public static immutable canParse = &PrefixExpression.canParse;
+	public static TokenList parse(TokenList input)
+	{
+		return PrefixExpression.parse(input);
+	}
+}
+/// ExpressionList = Expression ("," Expression)*
+public static class ExpressionList
+{
+	public static immutable canParse = &Expression.canParse;
+	public static TokenList parse(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			return input.front.type == TokenType.Comma ? loop(Expression.parse(input.dropOne)) : input;
+		}
+		
+		return loop(Expression.parse(input));
+	}
+}
+
+/// PrefixExpression = "++" PrefixExpression | "--" PrefixExpression | "**" PrefixExpression
+///		| "+" PrefixExpression | "-" PrefixExpression | PostfixExpression
+public static class PrefixExpression
 {
 	public static bool canParse(TokenList input)
 	{
-		return PrimaryExpression.canParse(input);
+		return PostfixExpression.canParse(input) || 
+			[TokenType.Plus2, TokenType.Plus, TokenType.Minus2, TokenType.Minus, TokenType.Asterisk2]
+			.any!(a => a == input.front.type);
 	}
 	public static TokenList parse(TokenList input)
 	{
-		return PrimaryExpression.parse(input);
+		switch(input.front.type)
+		{
+		case TokenType.Plus2: return PrefixExpression.parse(input.dropOne);
+		case TokenType.Minus2: return PrefixExpression.parse(input.dropOne);
+		case TokenType.Asterisk2: return PrefixExpression.parse(input.dropOne);
+		case TokenType.Plus: return PrefixExpression.parse(input.dropOne);
+		case TokenType.Minus: return PrefixExpression.parse(input.dropOne);
+		default: return PostfixExpression.parse(input);
+		}
+	}
+}
+
+/// PostfixExpression = PrimaryExpression ("++" | "--" | "**" | "(" [ExpressionList] ")" | "[" Expression "]" | "." Identifier)*
+public static class PostfixExpression
+{
+	public static immutable canParse = &PrimaryExpression.canParse;
+	public static TokenList parse(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			switch(input.front.type)
+			{
+			case TokenType.Plus2: return loop(input.dropOne);
+			case TokenType.Minus2: return loop(input.dropOne);
+			case TokenType.Asterisk2: return loop(input.dropOne);
+			case TokenType.OpenParenthese:
+				if(input.dropOne.front.type == TokenType.CloseParenthese)
+				{
+					return loop(input.drop(2));
+				}
+				else
+				{
+					return loop(ExpressionList.parse(input.dropOne).consumeToken!(TokenType.CloseParenthese));
+				}
+			case TokenType.OpenBracket:
+				return loop(Expression.parse(input.dropOne).consumeToken!(TokenType.CloseBracket));
+			case TokenType.Period:
+				return loop(input.dropOne.consumeToken!(TokenType.Identifier));
+			default: return input;
+			}
+		}
+		
+		return loop(PrimaryExpression.parse(input));
 	}
 }
 

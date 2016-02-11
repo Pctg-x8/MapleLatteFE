@@ -22,4 +22,6 @@ unittest
 	assertNotThrown!ParseException("this".asTokenList.asSyntaxTree);
 	assertThrown!ParseException("super.this".asTokenList.asSyntaxTree);
 	assertNotThrown!ParseException("(122 )".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("++(10.asPointer)".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("+++2**--".asTokenList.asSyntaxTree);
 }
