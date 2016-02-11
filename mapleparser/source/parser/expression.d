@@ -6,19 +6,19 @@ import mlfe.mapleparser.lexer.token;
 import mlfe.mapleparser.parser.exceptions;
 import std.algorithm, std.range;
 
-/// Expression = PrefixExpression
+/// Expression = AddExpression
 public static class Expression
 {
-	public static immutable canParse = &PrefixExpression.canParse;
+	public static immutable canParse = AddExpression.canParse;
 	public static TokenList parse(TokenList input)
 	{
-		return PrefixExpression.parse(input);
+		return AddExpression.parse(input);
 	}
 }
 /// ExpressionList = Expression ("," Expression)*
 public static class ExpressionList
 {
-	public static immutable canParse = &Expression.canParse;
+	public static immutable canParse = Expression.canParse;
 	public static TokenList parse(TokenList input)
 	{
 		static TokenList loop(TokenList input)
@@ -27,6 +27,47 @@ public static class ExpressionList
 		}
 		
 		return loop(Expression.parse(input));
+	}
+}
+
+/// AddExpression = MultiExpression ("+" MultiExpression | "-" MultiExpression)*
+public static class AddExpression
+{
+	public static immutable canParse = MultiExpression.canParse;
+	public static TokenList parse(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			switch(input.front.type)
+			{
+			case TokenType.Plus: return loop(MultiExpression.parse(input.dropOne));
+			case TokenType.Minus: return loop(MultiExpression.parse(input.dropOne));
+			default: return input;
+			}
+		}
+		
+		return loop(MultiExpression.parse(input));
+	}
+}
+
+/// MultiExpression = PrefixExpression ("*" PrefixExpression | "/" PrefixExpression | "%" PrefixExpression)*
+public static class MultiExpression
+{
+	public static immutable canParse = &PrefixExpression.canParse;
+	public static TokenList parse(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			switch(input.front.type)
+			{
+			case TokenType.Asterisk: return loop(PrefixExpression.parse(input.dropOne));
+			case TokenType.Slash: return loop(PrefixExpression.parse(input.dropOne));
+			case TokenType.Percent: return loop(PrefixExpression.parse(input.dropOne));
+			default: return input;
+			}
+		}
+		
+		return loop(PrefixExpression.parse(input));
 	}
 }
 

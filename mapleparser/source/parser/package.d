@@ -28,4 +28,6 @@ unittest
 	assertNotThrown!ParseException("[3, 2].normalized.scale(2).length".asTokenList.asSyntaxTree);
 	assertNotThrown!ParseException("[3, 2].asVector#float.normalized.scale(2).length".asTokenList.asSyntaxTree);
 	assertNotThrown!ParseException("[3, 2, 2].asVector#(float, 2).scale(2.1f).length".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("([3, 2] + 4).asVector#(float).scale(2.2f).length / 4.0f".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("([3, 2] + 4).asVector#float + 2.0f.scale(2.2f).length / 4.0f".asTokenList.asSyntaxTree);
 }
