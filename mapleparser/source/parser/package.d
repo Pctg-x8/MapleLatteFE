@@ -38,4 +38,8 @@ unittest
 	assertThrown!ParseException("x = [2, 3]".asTokenList.asSyntaxTree);
 	assertNotThrown!ParseException("".asTokenList.asSyntaxTree);
 	assertNotThrown!ParseException(";".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("{}".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("{ a = 3.2f; }".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("{ a = 3.2f; b = a + 4.5f; }".asTokenList.asSyntaxTree);
+	assertThrown!ParseException("{ a = 3.2f; b = a + 4.5f }".asTokenList.asSyntaxTree);
 }
