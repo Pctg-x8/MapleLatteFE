@@ -33,4 +33,5 @@ unittest
 	assertNotThrown!ParseException("asVector#float([3, 2] + 4) + 2.0f.scale(2.2f).length / 4.0f".asTokenList.asSyntaxTree);
 	assertNotThrown!ParseException("y + 2 == 5 || x + 4 == 2 ? x > 0 ? x : -x : y".asTokenList.asSyntaxTree);
 	assertThrown!ParseException("y + 2 == 5 || x + 4 == 2 ? x > 0 ? x : -x".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("x = [2, 3]".asTokenList.asSyntaxTree);
 }

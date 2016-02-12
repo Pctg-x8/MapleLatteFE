@@ -6,13 +6,18 @@ import mlfe.mapleparser.lexer.token;
 import mlfe.mapleparser.parser.exceptions;
 import std.algorithm, std.range;
 
-/// Expression = TriExpression
+/// Expression = TriExpression [AssignOps Expression]
 public static class Expression
 {
 	public static immutable canParse = TriExpression.canParse;
 	public static TokenList parse(TokenList input)
 	{
-		return TriExpression.parse(input);
+		auto in2_tx = TriExpression.parse(input);
+		if(AssignOps.canParse(in2_tx))
+		{
+			return Expression.parse(AssignOps.parse(in2_tx));
+		}
+		else return in2_tx;
 	}
 }
 /// ExpressionList = Expression ("," Expression)*
@@ -27,6 +32,46 @@ public static class ExpressionList
 		}
 		
 		return loop(Expression.parse(input));
+	}
+}
+
+/// AssignExpression = PostfixExpression AssignOps Expression
+public static class AssignExpression
+{
+	public static immutable canParse = &PostfixExpression.canParse;
+	public static TokenList parse(TokenList input)
+	{
+		return Expression.parse(AssignOps.parse(PostfixExpression.parse(input)));
+	}
+}
+/// AssignOps(Set of tokens) = "=" | "+=" | "-=" | "*=" | "/=" | "%="
+///			| "&=" | "|=" | "^=" | ">>=" | "<<="
+public static class AssignOps
+{
+	public static bool canParse(TokenList input)
+	{
+		return [TokenType.Equal, TokenType.Plus_Equal, TokenType.Minus_Equal, TokenType.Asterisk_Equal,
+			TokenType.Slash_Equal, TokenType.Percent_Equal, TokenType.Ampasand_Equal, TokenType.VerticalLine_Equal,
+			TokenType.Accent_Equal, TokenType.LeftAngleBracket2_Equal, TokenType.RightAngleBracket2_Equal]
+			.any!(a => a == input.front.type);
+	}
+	public static TokenList parse(TokenList input)
+	{
+		switch(input.front.type)
+		{
+		case TokenType.Equal: return input.dropOne;
+		case TokenType.Plus_Equal: return input.dropOne;
+		case TokenType.Minus_Equal: return input.dropOne;
+		case TokenType.Asterisk_Equal: return input.dropOne;
+		case TokenType.Slash_Equal: return input.dropOne;
+		case TokenType.Percent_Equal: return input.dropOne;
+		case TokenType.Ampasand_Equal: return input.dropOne;
+		case TokenType.VerticalLine_Equal: return input.dropOne;
+		case TokenType.Accent_Equal: return input.dropOne;
+		case TokenType.LeftAngleBracket2_Equal: return input.dropOne;
+		case TokenType.RightAngleBracket2_Equal: return input.dropOne;
+		default: throw new ParseException("No match tokens found", input.front.at);
+		}
 	}
 }
 
