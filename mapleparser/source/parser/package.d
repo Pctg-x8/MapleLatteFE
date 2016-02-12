@@ -42,4 +42,8 @@ unittest
 	assertNotThrown!ParseException("{ a = 3.2f; }".asTokenList.asSyntaxTree);
 	assertNotThrown!ParseException("{ a = 3.2f; b = a + 4.5f; }".asTokenList.asSyntaxTree);
 	assertThrown!ParseException("{ a = 3.2f; b = a + 4.5f }".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("if(a % 4 == 3){ a++; } else a--;".asTokenList.asSyntaxTree);
+	assertNotThrown!ParseException("if(a % 4 == 3) a++;".asTokenList.asSyntaxTree);
+	assertThrown!ParseException("if(a % 4 == 3) a++; else".asTokenList.asSyntaxTree);
+	assertThrown!ParseException("if(a % 4 == 3) a++ else a--;".asTokenList.asSyntaxTree);
 }

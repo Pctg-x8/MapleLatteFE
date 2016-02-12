@@ -157,5 +157,5 @@ enum TokenType
 	Comma, Colon, Semicolon, Period,
 	OpenParenthese, CloseParenthese, OpenBracket, CloseBracket, OpenBrace, CloseBrace,
 	
-	Package, This, Super, Global
+	Package, This, Super, Global, If, Else, For, Foreach, While, Do
 }

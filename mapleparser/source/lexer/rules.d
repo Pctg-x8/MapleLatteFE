@@ -123,6 +123,12 @@ auto getToken(immutable SourceObject src) pure
 		case "this": return makeToken!(TokenType.This);
 		case "super": return makeToken!(TokenType.Super);
 		case "global": return makeToken!(TokenType.Global);
+		case "if": return makeToken!(TokenType.If);
+		case "else": return makeToken!(TokenType.Else);
+		case "for": return makeToken!(TokenType.For);
+		case "foreach": return makeToken!(TokenType.Foreach);
+		case "while": return makeToken!(TokenType.While);
+		case "do": return makeToken!(TokenType.Do);
 		default: return Get_TokenResult(Token(src.current, TokenType.Identifier, id_temp), src2);
 		}
 	}
