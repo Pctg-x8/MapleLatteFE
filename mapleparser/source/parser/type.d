@@ -145,7 +145,7 @@ public static class Type
 			{
 				if(input.dropOne.front.type == TokenType.CloseBracket) return loop(input.drop(2));
 				auto in2 = Expression.drops(input.dropOne);
-				if(in2.dropOne.front.type == TokenType.CloseBracket) return loop(in2.dropOne);
+				if(in2.front.type == TokenType.CloseBracket) return loop(in2.dropOne);
 				return input;
 			}
 			else return input;
@@ -164,5 +164,79 @@ public static class Type
 			else return input;
 		}
 		return loop(ConstructableType.parse(input));
+	}
+}
+
+/// InferableConstructableType = "const" "(" InferableType ")" | "(" InferableType ")" | BasicType | "auto"
+public static class InferableConstructableType
+{
+	public static bool canParse(TokenList input)
+	{
+		return [TokenType.Const, TokenType.OpenParenthese, TokenType.Auto].any!(a => a == input.front.type)
+			|| BasicType.canParse(input);
+	}
+	public static TokenList drops(TokenList input)
+	{
+		if(input.front.type == TokenType.OpenParenthese)
+		{
+			auto in2 = InferableType.drops(input.dropOne);
+			if(in2.front.type == TokenType.CloseParenthese) return in2.dropOne;
+			else return input;
+		}
+		else if(input.front.type == TokenType.Const && input.dropOne.front.type == TokenType.OpenParenthese)
+		{
+			auto in2 = InferableType.drops(input.drop(2));
+			if(in2.front.type == TokenType.CloseParenthese) return in2.dropOne;
+			else return input;
+		}
+		else if(input.front.type == TokenType.Auto) return input.dropOne;
+		else return BasicType.drops(input);
+	}
+	public static TokenList parse(TokenList input)
+	{
+		switch(input.front.type)
+		{
+		case TokenType.Const:
+			return InferableType.parse(input.dropOne.consumeToken!(TokenType.OpenParenthese))
+				.consumeToken!(TokenType.CloseParenthese);
+		case TokenType.OpenParenthese:
+			return InferableType.parse(input.dropOne).consumeToken!(TokenType.CloseParenthese);
+		case TokenType.Auto: return input.dropOne;
+		default: return BasicType.parse(input);
+		}
+	}
+}
+
+/// InferableType = InferableConstructableType ("[" [Expression] "]")*
+public static class InferableType
+{
+	public static bool canParse(TokenList input) { return ConstructableType.canParse(input); }
+	public static TokenList drops(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			if(input.front.type == TokenType.OpenBracket)
+			{
+				if(input.dropOne.front.type == TokenType.CloseBracket) return loop(input.drop(2));
+				auto in2 = Expression.drops(input.dropOne);
+				if(in2.front.type == TokenType.CloseBracket) return loop(in2.dropOne);
+				return input;
+			}
+			else return input;
+		}
+		return loop(InferableConstructableType.drops(input));
+	}
+	public static TokenList parse(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			if(input.front.type == TokenType.OpenBracket)
+			{
+				if(input.dropOne.front.type == TokenType.CloseBracket) return loop(input.drop(2));
+				return loop(Expression.parse(input.dropOne).consumeToken!(TokenType.CloseBracket));
+			}
+			else return input;
+		}
+		return loop(InferableConstructableType.parse(input));
 	}
 }

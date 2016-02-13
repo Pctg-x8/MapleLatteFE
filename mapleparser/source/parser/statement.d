@@ -42,7 +42,7 @@ public static class StatementBlock
 			
 			if([TokenType.Var, TokenType.Val, TokenType.Const].any!(a => input.front.type == a))
 				return loop(LocalVariableDeclarator.parse(input));
-			auto vdd = VariableDeclarator.drops(Type.drops(input));
+			auto vdd = VariableDeclarator.drops(InferableType.drops(input));
 			if([TokenType.Semicolon, TokenType.Comma].any!(a => a == vdd.front.type))
 				return loop(LocalVariableDeclarator.parse(input));
 			
@@ -52,14 +52,14 @@ public static class StatementBlock
 	}
 }
 
-/// LocalVariableDeclarator = ("var" | "val" | "const" [Type]) VariableDeclarator ("," VariableDeclarator)* ";"
-///		| Type VariableDeclarator ("," VariableDeclarator)* ";"
+/// LocalVariableDeclarator = ("var" | "val" | "const" [InferableType]) VariableDeclarator ("," VariableDeclarator)* ";"
+///		| InferableType VariableDeclarator ("," VariableDeclarator)* ";"
 public static class LocalVariableDeclarator
 {
 	public static bool canParse(TokenList input)
 	{
 		return [TokenType.Var, TokenType.Val, TokenType.Const].any!(a => a == input.front.type)
-			|| Type.canParse(input);
+			|| InferableType.canParse(input);
 	}
 	public static TokenList parse(TokenList input)
 	{
@@ -74,17 +74,17 @@ public static class LocalVariableDeclarator
 			return loop(VariableDeclarator.parse(input.dropOne)).consumeToken!(TokenType.Semicolon);
 		case TokenType.Const:
 		{
-			auto in2_vd = VariableDeclarator.drops(Type.drops(input.dropOne));
+			auto in2_vd = VariableDeclarator.drops(InferableType.drops(input.dropOne));
 			if([TokenType.Semicolon, TokenType.Comma].any!(a => a == in2_vd.front.type))
 			{
-				return loop(VariableDeclarator.parse(Type.parse(input.dropOne))).consumeToken!(TokenType.Semicolon);
+				return loop(VariableDeclarator.parse(InferableType.parse(input.dropOne))).consumeToken!(TokenType.Semicolon);
 			}
 			else
 			{
 				return loop(VariableDeclarator.parse(input.dropOne)).consumeToken!(TokenType.Semicolon);
 			}
 		}
-		default: return loop(VariableDeclarator.parse(Type.parse(input))).consumeToken!(TokenType.Semicolon);
+		default: return loop(VariableDeclarator.parse(InferableType.parse(input))).consumeToken!(TokenType.Semicolon);
 		}
 	}
 }
