@@ -52,4 +52,5 @@ unittest
 	"if(a % 4 == 3) a++;".asTestCase;
 	"if(a % 4 == 3) a ++; else".asTestCase!true;
 	"if(a % 4 == 3) a++ else a--;".asTestCase!true;
+	"{ float[] ary = [3, 4]; float[2] a2 = [4, 5]; const(float)[a] c; const(float[3]) b; }".asTestCase!true;
 }

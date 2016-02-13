@@ -2,6 +2,7 @@ module mlfe.mapleparser.parser.type;
 
 import mlfe.mapleparser.parser.base;
 import mlfe.mapleparser.parser.symbol;
+import mlfe.mapleparser.parser.expression;
 import mlfe.mapleparser.parser.exceptions;
 import mlfe.mapleparser.lexer.token;
 import std.algorithm, std.range;
@@ -95,13 +96,73 @@ public static class BasicType
 	}
 }
 
-/// Type = BasicType
-public static class Type
+/// ConstructableType = "const" "(" Type ")" | "(" Type ")" | BasicType
+public static class ConstructableType
 {
-	public static bool canParse(TokenList input) { return BasicType.canParse(input); }
-	public static TokenList drops(TokenList input) { return BasicType.drops(input); }
+	public static bool canParse(TokenList input)
+	{
+		return [TokenType.Const, TokenType.OpenParenthese].any!(a => a == input.front.type)
+			|| BasicType.canParse(input);
+	}
+	public static TokenList drops(TokenList input)
+	{
+		if(input.front.type == TokenType.OpenParenthese)
+		{
+			auto in2 = Type.drops(input.dropOne);
+			if(in2.front.type == TokenType.CloseParenthese) return in2.dropOne;
+			else return input;
+		}
+		else if(input.front.type == TokenType.Const && input.dropOne.front.type == TokenType.OpenParenthese)
+		{
+			auto in2 = Type.drops(input.drop(2));
+			if(in2.front.type == TokenType.CloseParenthese) return in2.dropOne;
+			else return input;
+		}
+		else return BasicType.drops(input);
+	}
 	public static TokenList parse(TokenList input)
 	{
-		return BasicType.parse(input);
+		switch(input.front.type)
+		{
+		case TokenType.Const:
+			return Type.parse(input.dropOne.consumeToken!(TokenType.OpenParenthese)).consumeToken!(TokenType.CloseParenthese);
+		case TokenType.OpenParenthese:
+			return Type.parse(input.dropOne).consumeToken!(TokenType.CloseParenthese);
+		default: return BasicType.parse(input);
+		}
+	}
+}
+
+/// Type = ConstructableType ("[" [Expression] "]")*
+public static class Type
+{
+	public static bool canParse(TokenList input) { return ConstructableType.canParse(input); }
+	public static TokenList drops(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			if(input.front.type == TokenType.OpenBracket)
+			{
+				if(input.dropOne.front.type == TokenType.CloseBracket) return loop(input.drop(2));
+				auto in2 = Expression.drops(input.dropOne);
+				if(in2.dropOne.front.type == TokenType.CloseBracket) return loop(in2.dropOne);
+				return input;
+			}
+			else return input;
+		}
+		return loop(ConstructableType.drops(input));
+	}
+	public static TokenList parse(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			if(input.front.type == TokenType.OpenBracket)
+			{
+				if(input.dropOne.front.type == TokenType.CloseBracket) return loop(input.drop(2));
+				return loop(Expression.parse(input.dropOne).consumeToken!(TokenType.CloseBracket));
+			}
+			else return input;
+		}
+		return loop(ConstructableType.parse(input));
 	}
 }
