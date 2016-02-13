@@ -54,4 +54,11 @@ unittest
 	"if(a % 4 == 3) a++ else a--;".asTestCase!true;
 	"{ float[] ary = [3, 4]; float[2] a2 = [4, 5]; const(float)[a] c; const(float[3]) b; }".asTestCase;
 	"{ const auto[] e = [4.0, 5.0], b = [3]; }".asTestCase;
+	"while(true) update();".asTestCase;
+	"for(var i = 0; i < 10; i++) \"hello\".writeln;".asTestCase;
+	"for(i = 0; ; i++) \"infinite!\".writeln;".asTestCase;
+	"for(i = 0; ; i++;) \"infinite!\".writeln;".asTestCase!true;
+	"for(i = 0; i++) \"infinite!\".writeln;".asTestCase!true;
+	"do i = i + 1; while(true);".asTestCase;
+	"do i = i + 1 while(true);".asTestCase!true;
 }
