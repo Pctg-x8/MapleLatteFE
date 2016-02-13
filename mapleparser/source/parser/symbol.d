@@ -57,21 +57,21 @@ public static class TemplateParameterList
 	}
 }
 
-/// TemplateParameter = Type | Expression
+/// TemplateParameter = InferableType | Expression
 public static class TemplateParameter
 {
 	public static bool canParse(TokenList input)
 	{
-		return Type.canParse(input) || Expression.canParse(input);
+		return InferableType.canParse(input) || Expression.canParse(input);
 	}
 	public static TokenList drops(TokenList input)
 	{
-		if(Type.canParse(input)) return Type.drops(input);
+		if(Type.canParse(input)) return InferableType.drops(input);
 		else return Expression.drops(input);
 	}
 	public static TokenList parse(TokenList input)
 	{
-		if(Type.canParse(input)) return Type.parse(input);
+		if(Type.canParse(input)) return InferableType.parse(input);
 		else return Expression.parse(input);
 	}
 }

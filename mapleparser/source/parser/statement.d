@@ -280,8 +280,8 @@ public static class ForeachStatement
 		}
 		else
 		{
-			auto vdd = InferableType.drops(in2.dropOne);
-			if(vdd.front.type == TokenType.Identifier) return cont(InferableType.parse(in2.dropOne));
+			auto vdd = InferableType.drops(in2);
+			if(vdd.front.type == TokenType.Identifier) return cont(InferableType.parse(in2));
 			else return cont(in2);
 		}
 	}
