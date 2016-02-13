@@ -61,4 +61,7 @@ unittest
 	"for(i = 0; i++) \"infinite!\".writeln;".asTestCase!true;
 	"do i = i + 1; while(true);".asTestCase;
 	"do i = i + 1 while(true);".asTestCase!true;
+	"do i = i + 1; j--; while(true);".asTestCase!true;
+	"foreach(var a in [3, 4, 5]) a.writeln;".asTestCase;
+	"foreach(a[2] in [4, 5, 6]) { a.writeln; }".asTestCase;
 }

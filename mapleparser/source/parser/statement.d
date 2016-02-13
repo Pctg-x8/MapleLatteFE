@@ -7,13 +7,13 @@ import mlfe.mapleparser.parser.type;
 import mlfe.mapleparser.lexer.token;
 import std.algorithm, std.range;
 
-/// Statement = IfStatement | WhileStatement | DoStatement | ForStatement | StatementBlock | Expression ";" | ";"
+/// Statement = IfStatement | WhileStatement | DoStatement | ForStatement | ForeachStatement | StatementBlock | Expression ";" | ";"
 public static class Statement
 {
 	public static bool canParse(TokenList input)
 	{
 		return [TokenType.Semicolon, TokenType.OpenBrace,
-			TokenType.If, TokenType.While, TokenType.Do, TokenType.For]
+			TokenType.If, TokenType.While, TokenType.Do, TokenType.For, TokenType.Foreach]
 			.any!(a => a == input.front.type)
 			|| Expression.canParse(input);
 	}
@@ -25,6 +25,7 @@ public static class Statement
 		case TokenType.While: return WhileStatement.parse(input);
 		case TokenType.Do: return DoStatement.parse(input);
 		case TokenType.For: return ForStatement.parse(input);
+		case TokenType.Foreach: return ForeachStatement.parse(input);
 		case TokenType.OpenBrace: return StatementBlock.parse(input);
 		case TokenType.Semicolon: return input.dropOne;
 		default: return Expression.parse(input).consumeToken!(TokenType.Semicolon);
@@ -47,8 +48,8 @@ public static class StatementBlock
 			
 			if([TokenType.Var, TokenType.Val, TokenType.Const, TokenType.Auto].any!(a => input.front.type == a))
 				return loop(LocalVariableDeclarator.parse(input));
-			auto vdd = VariableDeclarator.drops(InferableType.drops(input));
-			if([TokenType.Semicolon, TokenType.Comma].any!(a => a == vdd.front.type))
+			auto vdd = InferableType.drops(input);
+			if(vdd.front.type == TokenType.Identifier)
 				return loop(LocalVariableDeclarator.parse(input));
 			
 			return loop(Statement.parse(input));
@@ -79,8 +80,8 @@ public static class LocalVariableDeclarator
 			return loop(VariableDeclarator.parse(input.dropOne)).consumeToken!(TokenType.Semicolon);
 		case TokenType.Const:
 		{
-			auto in2_vd = VariableDeclarator.drops(InferableType.drops(input.dropOne));
-			if([TokenType.Semicolon, TokenType.Comma].any!(a => a == in2_vd.front.type))
+			auto in2_vd = InferableType.drops(input.dropOne);
+			if(in2_vd.front.type == TokenType.Identifier)
 			{
 				return loop(VariableDeclarator.parse(InferableType.parse(input.dropOne))).consumeToken!(TokenType.Semicolon);
 			}
@@ -201,6 +202,49 @@ public static class ForStatement
 			{
 				return cont(Expression.parse(in2).consumeToken!(TokenType.Semicolon));
 			}
+		}
+	}
+}
+/// ForeachStatement = "foreach" "(" ["var" | "val" | "const" [InferableType] | InferableType]
+///		Identifier ("[" Expression "]")* "in" Expression ")" Statement
+public static class ForeachStatement
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Foreach;
+	}
+	public static TokenList parse(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			/// ("[" Expression "]")*
+			return input.front.type == TokenType.OpenBracket
+				? loop(Expression.parse(input.dropOne).consumeToken!(TokenType.CloseBracket))
+				: input;
+		}
+		static TokenList cont(TokenList input)
+		{
+			/// Identifier ("[" Expression "]")* "in" Expression ")" Statement
+			return Statement.parse(Expression.parse(loop(input.consumeToken!(TokenType.Identifier)).consumeToken!(TokenType.In))
+				.consumeToken!(TokenType.CloseParenthese));
+		}
+		
+		auto in2 = input.consumeToken!(TokenType.Foreach).consumeToken!(TokenType.OpenParenthese);
+		if([TokenType.Var, TokenType.Val].any!(a => a == in2.front.type))
+		{
+			return cont(in2.dropOne);
+		}
+		else if(in2.front.type == TokenType.Const)
+		{
+			auto it = InferableType.drops(in2.dropOne);
+			if(it.front.type == TokenType.Identifier) return cont(InferableType.parse(in2.dropOne));
+			else return cont(in2.dropOne);
+		}
+		else
+		{
+			auto vdd = InferableType.drops(in2.dropOne);
+			if(vdd.front.type == TokenType.Identifier) return cont(InferableType.parse(in2.dropOne));
+			else return cont(in2);
 		}
 	}
 }
