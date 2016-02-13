@@ -75,13 +75,13 @@ public static class TemplateParameter
 		else return Expression.parse(input);
 	}
 }
-/// SingleTemplateParameter = BuiltinType | Identifier | Literal | SpecialLiteral | ComplexLiteral
+/// SingleTemplateParameter = BuiltinType | Identifier | Literal | SpecialLiteral
 public static class SingleTemplateParameter
 {
 	public static bool canParse(TokenList input)
 	{
 		return input.front.type == TokenType.Identifier ||
-			BuiltinType.canParse(input) || Literal.canParse(input) || SpecialLiteral.canParse(input) || ComplexLiteral.canParse(input);
+			BuiltinType.canParse(input) || Literal.canParse(input) || SpecialLiteral.canParse(input);
 	}
 	public static TokenList drops(TokenList input)
 	{
@@ -89,7 +89,6 @@ public static class SingleTemplateParameter
 		if(BuiltinType.canParse(input)) return BuiltinType.drops(input);
 		if(Literal.canParse(input)) return Literal.drops(input);
 		if(SpecialLiteral.canParse(input)) return SpecialLiteral.drops(input);
-		if(ComplexLiteral.canParse(input)) return ComplexLiteral.drops(input);
 		return input;
 	}
 	public static TokenList parse(TokenList input)
@@ -98,7 +97,6 @@ public static class SingleTemplateParameter
 		if(BuiltinType.canParse(input)) return BuiltinType.parse(input);
 		if(Literal.canParse(input)) return Literal.parse(input);
 		if(SpecialLiteral.canParse(input)) return SpecialLiteral.parse(input);
-		if(ComplexLiteral.canParse(input)) return ComplexLiteral.parse(input);
 		throw new ParseException("No match rules found", input.front.at);
 	}
 }
