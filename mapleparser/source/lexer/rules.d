@@ -149,6 +149,9 @@ auto getToken(immutable SourceObject src) pure
 		case "val": return makeToken!(TokenType.Val);
 		case "const": return makeToken!(TokenType.Const);
 		case "in": return makeToken!(TokenType.In);
+		case "break": return makeToken!(TokenType.Break);
+		case "continue": return makeToken!(TokenType.Continue);
+		case "return": return makeToken!(TokenType.Return);
 		default: return Get_TokenResult(Token(src.current, TokenType.Identifier, id_temp), src2);
 		}
 	}

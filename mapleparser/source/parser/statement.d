@@ -7,13 +7,16 @@ import mlfe.mapleparser.parser.type;
 import mlfe.mapleparser.lexer.token;
 import std.algorithm, std.range;
 
-/// Statement = IfStatement | WhileStatement | DoStatement | ForStatement | ForeachStatement | StatementBlock | Expression ";" | ";"
+/// Statement = IfStatement | WhileStatement | DoStatement | ForStatement | ForeachStatement
+///	| NamedStatements | "break" [Identifier] ";" | "continue" [Identifier] ";" | "return" [Expression] ";"
+///	| StatementBlock | Expression ";" | ";"
 public static class Statement
 {
 	public static bool canParse(TokenList input)
 	{
 		return [TokenType.Semicolon, TokenType.OpenBrace,
-			TokenType.If, TokenType.While, TokenType.Do, TokenType.For, TokenType.Foreach]
+			TokenType.If, TokenType.While, TokenType.Do, TokenType.For, TokenType.Foreach,
+			TokenType.Identifier, TokenType.Break, TokenType.Continue, TokenType.Return]
 			.any!(a => a == input.front.type)
 			|| Expression.canParse(input);
 	}
@@ -26,9 +29,44 @@ public static class Statement
 		case TokenType.Do: return DoStatement.parse(input);
 		case TokenType.For: return ForStatement.parse(input);
 		case TokenType.Foreach: return ForeachStatement.parse(input);
+		case TokenType.Break:
+			if(input.dropOne.front.type == TokenType.Semicolon) return input.drop(2);
+			return input.dropOne.consumeToken!(TokenType.Identifier).consumeToken!(TokenType.Semicolon);
+		case TokenType.Continue:
+			if(input.dropOne.front.type == TokenType.Semicolon) return input.drop(2);
+			return input.dropOne.consumeToken!(TokenType.Identifier).consumeToken!(TokenType.Semicolon);
+		case TokenType.Return:
+			if(input.dropOne.front.type == TokenType.Semicolon) return input.drop(2);
+			return Expression.parse(input.dropOne).consumeToken!(TokenType.Semicolon);
+		case TokenType.Identifier:
+			if(input.dropOne.front.type == TokenType.Colon)
+			{
+				return NamedStatements.parse(input);
+			}
+			else goto default;
 		case TokenType.OpenBrace: return StatementBlock.parse(input);
 		case TokenType.Semicolon: return input.dropOne;
 		default: return Expression.parse(input).consumeToken!(TokenType.Semicolon);
+		}
+	}
+}
+/// NamedStatements = Identifier ":" (WhileStatement | DoStatement | ForStatement | ForeachStatement)
+public static class NamedStatements
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Identifier;
+	}
+	public static TokenList parse(TokenList input)
+	{
+		auto in2 = input.consumeToken!(TokenType.Identifier).consumeToken!(TokenType.Colon);
+		switch(in2.front.type)
+		{
+		case TokenType.While: return WhileStatement.parse(in2);
+		case TokenType.Do: return DoStatement.parse(in2);
+		case TokenType.For: return ForStatement.parse(in2);
+		case TokenType.Foreach: return ForeachStatement.parse(in2);
+		default: throw new ParseException("No match rules found", in2.front.at);
 		}
 	}
 }
