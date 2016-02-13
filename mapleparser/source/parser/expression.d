@@ -10,6 +10,11 @@ import std.algorithm, std.range;
 public static class Expression
 {
 	public static immutable canParse = TriExpression.canParse;
+	public static TokenList drops(TokenList input)
+	{
+		return TriExpression.drops(input)
+			.thenIf!(a => AssignOps.canParse(a), a => Expression.drops(AssignOps.drops(a)));
+	}
 	public static TokenList parse(TokenList input)
 	{
 		auto in2_tx = TriExpression.parse(input);
@@ -24,6 +29,14 @@ public static class Expression
 public static class ExpressionList
 {
 	public static immutable canParse = Expression.canParse;
+	public static TokenList drops(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			return input.front.type == TokenType.Comma ? loop(Expression.drops(input.dropOne)) : input;
+		}
+		return loop(Expression.drops(input));
+	}
 	public static TokenList parse(TokenList input)
 	{
 		static TokenList loop(TokenList input)
@@ -35,15 +48,6 @@ public static class ExpressionList
 	}
 }
 
-/// AssignExpression = PostfixExpression AssignOps Expression
-public static class AssignExpression
-{
-	public static immutable canParse = &PostfixExpression.canParse;
-	public static TokenList parse(TokenList input)
-	{
-		return Expression.parse(AssignOps.parse(PostfixExpression.parse(input)));
-	}
-}
 /// AssignOps(Set of tokens) = "=" | "+=" | "-=" | "*=" | "/=" | "%="
 ///			| "&=" | "|=" | "^=" | ">>=" | "<<="
 public static class AssignOps
@@ -55,6 +59,7 @@ public static class AssignOps
 			TokenType.Accent_Equal, TokenType.LeftAngleBracket2_Equal, TokenType.RightAngleBracket2_Equal]
 			.any!(a => a == input.front.type);
 	}
+	public static TokenList drops(TokenList input) { return canParse(input) ? input.dropOne : input; }
 	public static TokenList parse(TokenList input)
 	{
 		switch(input.front.type)
@@ -79,6 +84,17 @@ public static class AssignOps
 public static class TriExpression
 {
 	public static immutable canParse = LogicalExpression.canParse;
+	public static TokenList drops(TokenList input)
+	{
+		return LogicalExpression.drops(input).thenIf!(
+			a => a.front.type == TokenType.Hatena, (a)
+			{
+				auto in2 = TriExpression.drops(a.dropOne);
+				if(in2.front.type != TokenType.Colon) return input;
+				return TriExpression.drops(in2.dropOne);
+			}
+		);
+	}
 	public static TokenList parse(TokenList input)
 	{
 		auto in2 = LogicalExpression.parse(input);
@@ -96,6 +112,18 @@ public static class BinaryExpression(ContainedRule, Operators...)
 		public static immutable canParse = &ContainedRule.canParse;
 	else
 		public static immutable canParse = ContainedRule.canParse;
+	public static TokenList drops(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			foreach(op; Operators)
+			{
+				if(input.front.type == op) return loop(ContainedRule.drops(input.dropOne));
+			}
+			return input;
+		}
+		return loop(ContainedRule.drops(input));
+	}
 	public static TokenList parse(TokenList input)
 	{
 		static TokenList loop(TokenList input)
@@ -135,6 +163,15 @@ public static class PrefixExpression
 			[TokenType.Plus2, TokenType.Plus, TokenType.Minus2, TokenType.Minus, TokenType.Asterisk2]
 			.any!(a => a == input.front.type);
 	}
+	public static TokenList drops(TokenList input)
+	{
+		switch(input.front.type)
+		{
+		case TokenType.Plus2: case TokenType.Minus2: case TokenType.Plus: case TokenType.Minus: case TokenType.Asterisk2:
+			return PrefixExpression.drops(input.dropOne);
+		default: return PostfixExpression.drops(input);
+		}
+	}
 	public static TokenList parse(TokenList input)
 	{
 		switch(input.front.type)
@@ -153,6 +190,38 @@ public static class PrefixExpression
 public static class PostfixExpression
 {
 	public static immutable canParse = &PrimaryExpression.canParse;
+	public static TokenList drops(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			switch(input.front.type)
+			{
+			case TokenType.Plus2: case TokenType.Minus2: case TokenType.Asterisk2:
+				return loop(input.dropOne);
+			case TokenType.OpenParenthese:
+				if(input.dropOne.front.type == TokenType.CloseParenthese)
+				{
+					return loop(input.drop(2));
+				}
+				else
+				{
+					auto in2 = ExpressionList.drops(input.dropOne);
+					if(in2.front.type != TokenType.CloseParenthese) return input;
+					return loop(in2.dropOne);
+				}
+			case TokenType.OpenBracket:
+			{
+				auto in2 = Expression.drops(input.dropOne);
+				if(in2.front.type != TokenType.CloseBracket) return input;
+				else return loop(in2.dropOne);
+			}
+			case TokenType.Period:
+				return loop(TemplateInstance.drops(input.dropOne));
+			default: return input;
+			}
+		}
+		return loop(PrimaryExpression.drops(input));
+	}
 	public static TokenList parse(TokenList input)
 	{
 		static TokenList loop(TokenList input)
@@ -194,6 +263,30 @@ public static class PrimaryExpression
 			|| Literal.canParse(input) || SpecialLiteral.canParse(input) || TemplateInstance.canParse(input)
 			|| ComplexLiteral.canParse(input);
 	}
+	public static TokenList drops(TokenList input)
+	{
+		switch(input.front.type)
+		{
+		case TokenType.OpenParenthese:
+		{
+			auto in2 = Expression.drops(input.dropOne);
+			if(in2.front.type != TokenType.CloseParenthese) return input;
+			else return in2.dropOne;
+		}
+		case TokenType.Period: return TemplateInstance.drops(input.dropOne);
+		case TokenType.Global:
+		{
+			if(input.dropOne.front.type != TokenType.Period) return input;
+			return TemplateInstance.drops(input.drop(2));
+		}
+		default: break;
+		}
+		if(TemplateInstance.canParse(input)) return TemplateInstance.drops(input);
+		if(Literal.canParse(input)) return Literal.drops(input);
+		if(SpecialLiteral.canParse(input)) return SpecialLiteral.drops(input);
+		if(ComplexLiteral.canParse(input)) return ComplexLiteral.drops(input);
+		return input;
+	}
 	public static TokenList parse(TokenList input)
 	{
 		switch(input.front.type)
@@ -221,6 +314,10 @@ public static class Literal
 			TokenType.StringLiteral, TokenType.CharacterLiteral, TokenType.LongLiteral, TokenType.UlongLiteral]
 			.any!(a => a == input.front.type);
 	}
+	public static TokenList drops(TokenList input)
+	{
+		return canParse(input) ? input.dropOne : input;
+	}
 	public static TokenList parse(TokenList input)
 	{
 		switch(input.front.type)
@@ -244,6 +341,10 @@ public static class SpecialLiteral
 	{
 		return [TokenType.This, TokenType.Super].any!(a => a == input.front.type);
 	}
+	public static TokenList drops(TokenList input)
+	{
+		return canParse(input) ? input.dropOne : input;
+	}
 	public static TokenList parse(TokenList input)
 	{
 		switch(input.front.type)
@@ -261,6 +362,14 @@ public static class ComplexLiteral
 	public static bool canParse(TokenList input)
 	{
 		return input.front.type == TokenType.OpenBracket;
+	}
+	public static TokenList drops(TokenList input)
+	{
+		if(input.front.type != TokenType.OpenBracket) return input;
+		if(input.dropOne.front.type == TokenType.CloseBracket) return input.drop(2);
+		auto in2 = ExpressionList.drops(input.dropOne);
+		if(in2.front.type != TokenType.CloseBracket) return input;
+		return in2.dropOne;
 	}
 	public static TokenList parse(TokenList input)
 	{

@@ -14,36 +14,42 @@ void asSyntaxTree(TokenList input)
 	if(rest.front.type != TokenType.EndOfScript) throw new ParseException("Script not terminated.", rest.front.at);
 }
 
-unittest
+private auto asTestCase(bool ThrownException = false)(string testcase)
 {
 	import std.exception : assertThrown, assertNotThrown;
 	
-	assertNotThrown!ParseException("123456;".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("\"test\";".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("this;".asTokenList.asSyntaxTree);
-	assertThrown!ParseException("super.this;".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("(122 );".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("++(10.asPointer);".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("+++2**--;".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("3.toNormalized(2, 2).length;".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("[3, 2].normalized.scale(2).length;".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("[3, 2].asVector#float.normalized.scale(2).length;".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("[3, 2, 2].asVector#(float, 2).scale(2.1f).length;".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("([3, 2] + 4).asVector#(float).scale(2.2f).length / 4.0f;".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("([3, 2] + 4).asVector#float + 2.0f.scale(2.2f).length / 4.0f;".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("asVector#float([3, 2] + 4) + 2.0f.scale(2.2f).length / 4.0f;".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("y + 2 == 5 || x + 4 == 2 ? x > 0 ? x : -x : y;".asTokenList.asSyntaxTree);
-	assertThrown!ParseException("y + 2 == 5 || x + 4 == 2 ? x > 0 ? x : -x;".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("x = [2, 3];".asTokenList.asSyntaxTree);
-	assertThrown!ParseException("x = [2, 3]".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException(";".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("{}".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("{ a = 3.2f; }".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("{ a = 3.2f; b = a + 4.5f; }".asTokenList.asSyntaxTree);
-	assertThrown!ParseException("{ a = 3.2f; b = a + 4.5f }".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("if(a % 4 == 3){ a++; } else a--;".asTokenList.asSyntaxTree);
-	assertNotThrown!ParseException("if(a % 4 == 3) a++;".asTokenList.asSyntaxTree);
-	assertThrown!ParseException("if(a % 4 == 3) a++; else".asTokenList.asSyntaxTree);
-	assertThrown!ParseException("if(a % 4 == 3) a++ else a--;".asTokenList.asSyntaxTree);
+	static if(ThrownException) assertThrown!ParseException(testcase.asTokenList.asSyntaxTree);
+	else assertNotThrown!ParseException(testcase.asTokenList.asSyntaxTree);
+}
+
+unittest
+{
+	"123456;".asTestCase;
+	"\"test\";".asTestCase;
+	"this;".asTestCase;
+	"super.this;".asTestCase!true;
+	"(122 );".asTestCase;
+	"++(10.asPointer);".asTestCase;
+	"+++2**--;".asTestCase;
+	"3.toNormalized(2, 2).length;".asTestCase;
+	"[3, 2].normalized.scale(2).length;".asTestCase;
+	"[3, 2].asVector#float.normalized.scale(2).length;".asTestCase;
+	"[3, 2, 2].asVector#(float, 2).scale(2.1f).length;".asTestCase;
+	"([3, 2] + 4).asVector#(float).scale(2.2f).length / 4.0f;".asTestCase;
+	"([3, 2] + 4).asVector#float + 2.0f.scale(2.2f).length / 4.0f;".asTestCase;
+	"asVector#float([3, 2] + 4) + 2.0f.scale(2.2f).length / 4.0f;".asTestCase;
+	"y + 2 == 5 || x + 4 == 2 ? x > 0 ? x : -x : y;".asTestCase;
+	"y + 2 == 5 || x + 4 == 2 ? x > 0 ? x : -x;".asTestCase!true;
+	"x = [2, 3];".asTestCase;
+	"x = [2, 3]".asTestCase!true;
+	"".asTestCase;
+	";".asTestCase;
+	"{}".asTestCase;
+	"{ var a = 3.2f; }".asTestCase;
+	"{ val a = 3.2f; const float b = a + 4.5f; }".asTestCase;
+	"{ a = 3.2f; b = a + 4.5f }".asTestCase!true;
+	"if(a % 4 == 3) { a++; } else a--;".asTestCase;
+	"if(a % 4 == 3) a++;".asTestCase;
+	"if(a % 4 == 3) a ++; else".asTestCase!true;
+	"if(a % 4 == 3) a++ else a--;".asTestCase!true;
 }

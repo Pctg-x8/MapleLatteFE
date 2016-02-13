@@ -3,6 +3,7 @@ module mlfe.mapleparser.parser.statement;
 import mlfe.mapleparser.parser.expression;
 import mlfe.mapleparser.parser.base;
 import mlfe.mapleparser.parser.exceptions;
+import mlfe.mapleparser.parser.type;
 import mlfe.mapleparser.lexer.token;
 import std.algorithm, std.range;
 
@@ -26,7 +27,7 @@ public static class Statement
 	}
 }
 
-/// StatementBlock = "{" Statement* "}"
+/// StatementBlock = "{" (LocalVariableDeclarator | Statement)* "}"
 public static class StatementBlock
 {
 	public static bool canParse(TokenList input)
@@ -37,9 +38,77 @@ public static class StatementBlock
 	{
 		static TokenList loop(TokenList input)
 		{
-			return input.front.type != TokenType.CloseBrace ? loop(Statement.parse(input)) : input.dropOne;
+			if(input.front.type == TokenType.CloseBrace) return input.dropOne;
+			
+			if([TokenType.Var, TokenType.Val, TokenType.Const].any!(a => input.front.type == a))
+				return loop(LocalVariableDeclarator.parse(input));
+			auto vdd = VariableDeclarator.drops(Type.drops(input));
+			if([TokenType.Semicolon, TokenType.Comma].any!(a => a == vdd.front.type))
+				return loop(LocalVariableDeclarator.parse(input));
+			
+			return loop(Statement.parse(input));
 		}
 		return loop(input.consumeToken!(TokenType.OpenBrace));
+	}
+}
+
+/// LocalVariableDeclarator = ("var" | "val" | "const" [Type]) VariableDeclarator ("," VariableDeclarator)* ";"
+///		| Type VariableDeclarator ("," VariableDeclarator)* ";"
+public static class LocalVariableDeclarator
+{
+	public static bool canParse(TokenList input)
+	{
+		return [TokenType.Var, TokenType.Val, TokenType.Const].any!(a => a == input.front.type)
+			|| Type.canParse(input);
+	}
+	public static TokenList parse(TokenList input)
+	{
+		static TokenList loop(TokenList input)
+		{
+			return input.front.type == TokenType.Comma ? loop(VariableDeclarator.parse(input.dropOne)) : input;
+		}
+		
+		switch(input.front.type)
+		{
+		case TokenType.Var: case TokenType.Val:
+			return loop(VariableDeclarator.parse(input.dropOne)).consumeToken!(TokenType.Semicolon);
+		case TokenType.Const:
+		{
+			auto in2_vd = VariableDeclarator.drops(Type.drops(input.dropOne));
+			if([TokenType.Semicolon, TokenType.Comma].any!(a => a == in2_vd.front.type))
+			{
+				return loop(VariableDeclarator.parse(Type.parse(input.dropOne))).consumeToken!(TokenType.Semicolon);
+			}
+			else
+			{
+				return loop(VariableDeclarator.parse(input.dropOne)).consumeToken!(TokenType.Semicolon);
+			}
+		}
+		default: return loop(VariableDeclarator.parse(Type.parse(input))).consumeToken!(TokenType.Semicolon);
+		}
+	}
+}
+/// VariableDeclarator = Identifier ["=" TriExpression]
+public static class VariableDeclarator
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Identifier;
+	}
+	public static TokenList drops(TokenList input)
+	{
+		if(input.front.type != TokenType.Identifier) return input;
+		if(input.dropOne.front.type == TokenType.Equal) return TriExpression.drops(input.drop(2));
+		else return input.dropOne;
+	}
+	public static TokenList parse(TokenList input)
+	{
+		auto in2 = input.consumeToken!(TokenType.Identifier);
+		if(in2.front.type == TokenType.Equal)
+		{
+			return TriExpression.parse(in2.dropOne);
+		}
+		else return in2;
 	}
 }
 

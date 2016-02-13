@@ -45,7 +45,7 @@ unittest
 		.equal([TokenType.LongLiteral, TokenType.FloatLiteral, TokenType.DoubleLiteral, TokenType.FloatLiteral,
 		TokenType.NumericLiteral, TokenType.DoubleLiteral, TokenType.LongLiteral, TokenType.UlongLiteral]));
 	assert("var a = 0, b = 2.45f, c = \"Test Literal\";".asTokenList.take(14).map!(a => a.type)
-		.equal([TokenType.Identifier, TokenType.Identifier, TokenType.Equal, TokenType.LongLiteral,
+		.equal([TokenType.Var, TokenType.Identifier, TokenType.Equal, TokenType.LongLiteral,
 		TokenType.Comma, TokenType.Identifier, TokenType.Equal, TokenType.FloatLiteral, TokenType.Comma,
 		TokenType.Identifier, TokenType.Equal, TokenType.StringLiteral, TokenType.Semicolon, TokenType.EndOfScript]));
 }

@@ -129,6 +129,25 @@ auto getToken(immutable SourceObject src) pure
 		case "foreach": return makeToken!(TokenType.Foreach);
 		case "while": return makeToken!(TokenType.While);
 		case "do": return makeToken!(TokenType.Do);
+		case "void": return makeToken!(TokenType.Void);
+		case "char": return makeToken!(TokenType.Char);
+		case "uchar": return makeToken!(TokenType.Uchar);
+		case "byte": return makeToken!(TokenType.Byte);
+		case "short": return makeToken!(TokenType.Short);
+		case "ushort": return makeToken!(TokenType.Ushort);
+		case "word": return makeToken!(TokenType.Word);
+		case "int": return makeToken!(TokenType.Int);
+		case "uint": return makeToken!(TokenType.Uint);
+		case "dword": return makeToken!(TokenType.Dword);
+		case "long": return makeToken!(TokenType.Long);
+		case "ulong": return makeToken!(TokenType.Ulong);
+		case "qword": return makeToken!(TokenType.Qword);
+		case "float": return makeToken!(TokenType.Float);
+		case "double": return makeToken!(TokenType.Double);
+		case "auto": return makeToken!(TokenType.Auto);
+		case "var": return makeToken!(TokenType.Var);
+		case "val": return makeToken!(TokenType.Val);
+		case "const": return makeToken!(TokenType.Const);
 		default: return Get_TokenResult(Token(src.current, TokenType.Identifier, id_temp), src2);
 		}
 	}
