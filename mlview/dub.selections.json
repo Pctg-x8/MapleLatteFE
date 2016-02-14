@@ -1,0 +1,9 @@
+{
+	"fileVersion": 1,
+	"versions": {
+		"derelict-util": "2.0.4",
+		"nanovg-d": "~master",
+		"derelict-gl3": "1.0.17",
+		"derelict-glfw3": "1.1.1"
+	}
+}

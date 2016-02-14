@@ -1,0 +1,10 @@
+name "mlview"
+description "Maple Latte Source Hilighting"
+copyright "Copyright © 2016, S.Percentage"
+authors "S.Percentage"
+
+dependency "nanovg-d" version="~master"
+dependency "derelict-glfw3" version="~>1.1.1"
+dependency "mlfe:mapleparser" version="*"
+versions "UseGL3Renderer"
+lflags "-L./"
