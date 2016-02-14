@@ -64,6 +64,7 @@ auto getToken(immutable SourceObject src)
 		case "<>": return Value(TokenType.Exclamation_Equal);
 		case "->": return Value(TokenType.Minus_RightAngleBracket);
 		case "<-": return Value(TokenType.LeftAngleBracket_Minus);
+		case "=>": return Value(TokenType.Equal_RightAngleBracket);
 		default: break;
 		}
 	}
@@ -156,6 +157,9 @@ auto getToken(immutable SourceObject src)
 		case "try": return makeToken!(TokenType.Try);
 		case "catch": return makeToken!(TokenType.Catch);
 		case "finally": return makeToken!(TokenType.Finally);
+		case "switch": return makeToken!(TokenType.Switch);
+		case "case": return makeToken!(TokenType.Case);
+		case "default": return makeToken!(TokenType.Default);
 		default: return Get_TokenResult(Token(src.current, TokenType.Identifier, id_temp), src2);
 		}
 	}

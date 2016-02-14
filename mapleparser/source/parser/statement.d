@@ -9,7 +9,7 @@ import std.algorithm, std.range;
 
 /// Statement = IfStatement | WhileStatement | DoStatement | ForStatement | ForeachStatement
 ///	| NamedStatements | "break" [Identifier] ";" | "continue" [Identifier] ";" | "return" [Expression] ";"
-/// | "throw" Expression ";" | TryStatement
+/// | "throw" Expression ";" | TryStatement | SwitchStatement
 ///	| StatementBlock | Expression ";" | ";"
 public static class Statement
 {
@@ -18,7 +18,7 @@ public static class Statement
 		return [TokenType.Semicolon, TokenType.OpenBrace,
 			TokenType.If, TokenType.While, TokenType.Do, TokenType.For, TokenType.Foreach,
 			TokenType.Identifier, TokenType.Break, TokenType.Continue, TokenType.Return,
-			TokenType.Throw, TokenType.Try]
+			TokenType.Throw, TokenType.Try, TokenType.Switch]
 			.any!(a => a == input.front.type)
 			|| Expression.canParse(input);
 	}
@@ -49,6 +49,7 @@ public static class Statement
 		case TokenType.Throw:
 			return Expression.parse(input.dropOne).consumeToken!(TokenType.Semicolon);
 		case TokenType.Try: return TryStatement.parse(input);
+		case TokenType.Switch: return SwitchStatement.parse(input);
 		case TokenType.OpenBrace: return StatementBlock.parse(input);
 		case TokenType.Semicolon: return input.dropOne;
 		default: return Expression.parse(input).consumeToken!(TokenType.Semicolon);
@@ -302,5 +303,83 @@ public static class FinallyClause
 	public static TokenList parse(TokenList input)
 	{
 		return Statement.parse(input.consumeToken!(TokenType.Finally));
+	}
+}
+/// SwitchStatement = "switch" "(" Expression ")" "{" (CaseClause | DefaultClause)* "}"
+public static class SwitchStatement
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Switch;
+	}
+	public static TokenList parse(TokenList input)
+	{
+		return input.consumeToken!(TokenType.Switch)
+			.then!(a => Expression.parse(a.consumeToken!(TokenType.OpenParenthese)).consumeToken!(TokenType.CloseParenthese))
+			.consumeToken!(TokenType.OpenBrace)
+			.thenLoop!(a => CaseClause.canParse(a) || DefaultClause.canParse(a), (a)
+			{
+				return CaseClause.canParse(a) ? CaseClause.parse(a) : DefaultClause.parse(a);
+			})
+			.consumeToken!(TokenType.CloseBrace);
+	}
+}
+/// DefaultClause = "default" "=>" Statement
+public static class DefaultClause
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Default;
+	}
+	public static TokenList parse(TokenList input)
+	{
+		return input.consumeToken!(TokenType.Default).consumeToken!(TokenType.Equal_RightAngleBracket)
+			.then!(a => Statement.parse(a));
+	}
+}
+/// CaseClause = ValueCaseClause | TypeMatchingCaseClause
+public static class CaseClause
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Case;
+	}
+	public static TokenList parse(TokenList input)
+	{
+		if(input.take(3).map!(a => a.type).equal([TokenType.Case, TokenType.Identifier, TokenType.Colon]))
+		{
+			return TypeMatchingCaseClause.parse(input);
+		}
+		else return ValueCaseClause.parse(input);
+	}
+}
+/// ValueCaseClause = "case" ExpressionList "=>" Statement
+public static class ValueCaseClause
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Case;
+	}
+	public static TokenList parse(TokenList input)
+	{
+		return input.consumeToken!(TokenType.Case)
+			.then!(a => ExpressionList.parse(a).consumeToken!(TokenType.Equal_RightAngleBracket))
+			.then!(Statement.parse);
+	}
+}
+/// TypeMatchingCaseClause = "case" Identifier ":" Type ("," Identifier ":" Type)* "=>" Statement
+public static class TypeMatchingCaseClause
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Case;
+	}
+	public static TokenList parse(TokenList input)
+	{
+		return input.consumeToken!(TokenType.Case).consumeToken!(TokenType.Identifier).consumeToken!(TokenType.Colon)
+			.then!(Type.parse)
+			.thenLoop!(a => a.front.type == TokenType.Comma,
+				a => Type.parse(a.dropOne.consumeToken!(TokenType.Identifier).consumeToken!(TokenType.Colon)))
+			.then!(a => Statement.parse(a.consumeToken!(TokenType.Equal_RightAngleBracket)));
 	}
 }

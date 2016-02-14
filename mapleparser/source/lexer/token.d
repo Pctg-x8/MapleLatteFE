@@ -150,7 +150,7 @@ enum TokenType
 	Plus_Equal, Minus_Equal, Asterisk_Equal, Slash_Equal, Percent_Equal, Ampasand_Equal, VerticalLine_Equal, Accent_Equal,
 	LeftAngleBracket_Equal, RightAngleBracket_Equal, Exclamation_Equal,
 	Plus2, Minus2, Asterisk2, LeftAngleBracket2, RightAngleBracket2, Equal2, Ampasand2, VerticalLine2,
-	Minus_RightAngleBracket, LeftAngleBracket_Minus,
+	Minus_RightAngleBracket, LeftAngleBracket_Minus, Equal_RightAngleBracket,
 	
 	Plus, Minus, Asterisk, Slash, Percent, Ampasand, VerticalLine, Accent, LeftAngleBracket, RightAngleBracket, Equal,
 	Hatena, Sharp, Exclamation, Tilda,
@@ -159,5 +159,5 @@ enum TokenType
 	
 	Package, This, Super, Global, If, Else, For, Foreach, While, Do, Break, Continue, Return,
 	Void, Char, Uchar, Byte, Short, Ushort, Word, Int, Uint, Dword, Long, Ulong, Qword, Float, Double, Auto,
-	Var, Val, Const, In, Throw, Try, Catch, Finally
+	Var, Val, Const, In, Throw, Try, Catch, Finally, Switch, Case, Default
 }
