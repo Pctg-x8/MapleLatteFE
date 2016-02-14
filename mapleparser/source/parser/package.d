@@ -64,7 +64,6 @@ unittest
 	"do i = i + 1; j--; while(true);".asTestCase!true;
 	"do i = j; for(var j = 0; j < 30; j++);".asTestCase!true;
 	"foreach(var a in [3, 4, 5]) a.writeln;".asTestCase;
-	"foreach(a[2] in [4, 5, 6]) { a.writeln; }".asTestCase;
 	"foreach(Tuple#(int, float) a in [4.0f, 5.0f, 6.0f].withIndex) { a.writeln; }".asTestCase;
 	"loop1: while(true) for(var i = 0; i < 3; i++) if(i == 2) break loop1;".asTestCase;
 	"while(true) continue;".asTestCase;
