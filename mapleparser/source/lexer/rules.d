@@ -152,6 +152,10 @@ auto getToken(immutable SourceObject src)
 		case "break": return makeToken!(TokenType.Break);
 		case "continue": return makeToken!(TokenType.Continue);
 		case "return": return makeToken!(TokenType.Return);
+		case "throw": return makeToken!(TokenType.Throw);
+		case "try": return makeToken!(TokenType.Try);
+		case "catch": return makeToken!(TokenType.Catch);
+		case "finally": return makeToken!(TokenType.Finally);
 		default: return Get_TokenResult(Token(src.current, TokenType.Identifier, id_temp), src2);
 		}
 	}

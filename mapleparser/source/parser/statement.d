@@ -9,6 +9,7 @@ import std.algorithm, std.range;
 
 /// Statement = IfStatement | WhileStatement | DoStatement | ForStatement | ForeachStatement
 ///	| NamedStatements | "break" [Identifier] ";" | "continue" [Identifier] ";" | "return" [Expression] ";"
+/// | "throw" Expression ";" | TryStatement
 ///	| StatementBlock | Expression ";" | ";"
 public static class Statement
 {
@@ -16,7 +17,8 @@ public static class Statement
 	{
 		return [TokenType.Semicolon, TokenType.OpenBrace,
 			TokenType.If, TokenType.While, TokenType.Do, TokenType.For, TokenType.Foreach,
-			TokenType.Identifier, TokenType.Break, TokenType.Continue, TokenType.Return]
+			TokenType.Identifier, TokenType.Break, TokenType.Continue, TokenType.Return,
+			TokenType.Throw, TokenType.Try]
 			.any!(a => a == input.front.type)
 			|| Expression.canParse(input);
 	}
@@ -44,6 +46,9 @@ public static class Statement
 				return NamedStatements.parse(input);
 			}
 			else goto default;
+		case TokenType.Throw:
+			return Expression.parse(input.dropOne).consumeToken!(TokenType.Semicolon);
+		case TokenType.Try: return TryStatement.parse(input);
 		case TokenType.OpenBrace: return StatementBlock.parse(input);
 		case TokenType.Semicolon: return input.dropOne;
 		default: return Expression.parse(input).consumeToken!(TokenType.Semicolon);
@@ -284,5 +289,46 @@ public static class ForeachStatement
 			if(vdd.front.type == TokenType.Identifier) return cont(InferableType.parse(in2));
 			else return cont(in2);
 		}
+	}
+}
+/// TryStatement = "try" Statement CatchClause* [FinallyClause]
+public static class TryStatement
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Try;
+	}
+	public static TokenList parse(TokenList input)
+	{
+		return Statement.parse(input.consumeToken!(TokenType.Try))
+			.thenLoop!(a => CatchClause.canParse(a), a => CatchClause.parse(a))
+			.thenIf!(a => FinallyClause.canParse(a), a => FinallyClause.parse(a));
+	}
+}
+/// CatchClause = "catch" "(" ["const"] Type Identifier ")" Statement
+public static class CatchClause
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Catch;
+	}
+	public static TokenList parse(TokenList input)
+	{
+		return input.consumeToken!(TokenType.Catch).consumeToken!(TokenType.OpenParenthese)
+			.thenIf!(a => a.front.type == TokenType.Const, a => a.dropOne)
+			.then!(a => Type.parse(a).consumeToken!(TokenType.Identifier).consumeToken!(TokenType.CloseParenthese))
+			.then!(a => Statement.parse(a));
+	}
+}
+/// FinallyClause = "finally" Statement
+public static class FinallyClause
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Finally;
+	}
+	public static TokenList parse(TokenList input)
+	{
+		return Statement.parse(input.consumeToken!(TokenType.Finally));
 	}
 }

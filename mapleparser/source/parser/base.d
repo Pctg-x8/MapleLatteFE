@@ -16,3 +16,13 @@ TokenList thenIf(alias CondF, alias ThenF)(TokenList input)
 {
 	return CondF(input) ? ThenF(input) : input;
 }
+/// Set "then" action with condition and looping
+TokenList thenLoop(alias Pred, alias Fun)(TokenList input)
+{
+	return Pred(input) ? Fun(input).thenLoop!(Pred, Fun) : input;
+}
+/// Set "then" action
+TokenList then(alias Fun)(TokenList input)
+{
+	return Fun(input);
+}

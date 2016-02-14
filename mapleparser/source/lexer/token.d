@@ -159,5 +159,5 @@ enum TokenType
 	
 	Package, This, Super, Global, If, Else, For, Foreach, While, Do, Break, Continue, Return,
 	Void, Char, Uchar, Byte, Short, Ushort, Word, Int, Uint, Dword, Long, Ulong, Qword, Float, Double, Auto,
-	Var, Val, Const, In
+	Var, Val, Const, In, Throw, Try, Catch, Finally
 }

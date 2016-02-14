@@ -70,4 +70,5 @@ unittest
 	"while(true) continue;".asTestCase;
 	"if(v == 3) return v + 1;".asTestCase;
 	"return input.front.type == TokenType.Asterisk ? input.dropOne : input;".asTestCase;
+	"try { if(a == 0) throw RuntimeError(\"assertion failure.\"); } catch(RuntimeError e) e.writeln; finally o.terminate();".asTestCase;
 }
