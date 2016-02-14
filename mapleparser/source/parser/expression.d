@@ -3,6 +3,7 @@ module mlfe.mapleparser.parser.expression;
 import mlfe.mapleparser.parser.base;
 import mlfe.mapleparser.parser.symbol;
 import mlfe.mapleparser.parser.type;
+import mlfe.mapleparser.parser.statement;
 import mlfe.mapleparser.parser.exceptions;
 import mlfe.mapleparser.lexer.token;
 import std.algorithm, std.range;
@@ -254,13 +255,15 @@ public static class PostfixExpression
 }
 
 /// PrimaryExpression = Literal | SpecialLiteral | ComplexLiteral
-///		| TemplateInstance | "." TemplateInstance | "global" "." TemplateInstance" | NewExpression | "(" Expression ")"
+///		| TemplateInstance | "." TemplateInstance | "global" "." TemplateInstance"
+///		| NewExpression | SwitchExpression | "(" Expression ")"
 public static class PrimaryExpression
 {
 	public static bool canParse(TokenList input)
 	{
 		return input.front.type == TokenType.OpenParenthese || input.front.type == TokenType.Period
 			|| input.front.type == TokenType.Global || input.front.type == TokenType.New
+			|| input.front.type == TokenType.Switch
 			|| Literal.canParse(input) || SpecialLiteral.canParse(input) || TemplateInstance.canParse(input)
 			|| ComplexLiteral.canParse(input);
 	}
@@ -281,6 +284,7 @@ public static class PrimaryExpression
 			return TemplateInstance.drops(input.drop(2));
 		}
 		case TokenType.New: return NewExpression.drops(input);
+		case TokenType.Switch: return SwitchExpression.drops(input);
 		default: break;
 		}
 		if(TemplateInstance.canParse(input)) return TemplateInstance.drops(input);
@@ -297,6 +301,7 @@ public static class PrimaryExpression
 		case TokenType.Period: return TemplateInstance.parse(input.dropOne);
 		case TokenType.Global: return TemplateInstance.parse(input.dropOne.consumeToken!(TokenType.Period));
 		case TokenType.New: return NewExpression.parse(input);
+		case TokenType.Switch: return SwitchExpression.parse(input);
 		default: break;
 		}
 		if(TemplateInstance.canParse(input)) return TemplateInstance.parse(input);
@@ -337,12 +342,12 @@ public static class Literal
 	}
 }
 
-/// SpecialLiteral = "this" | "super"
+/// SpecialLiteral = "this" | "super" | "true" | "false"
 public static class SpecialLiteral
 {
 	public static bool canParse(TokenList input)
 	{
-		return [TokenType.This, TokenType.Super].any!(a => a == input.front.type);
+		return [TokenType.This, TokenType.Super, TokenType.True, TokenType.False].any!(a => a == input.front.type);
 	}
 	public static TokenList drops(TokenList input)
 	{
@@ -354,6 +359,8 @@ public static class SpecialLiteral
 		{
 		case TokenType.This: return input.dropOne;
 		case TokenType.Super: return input.dropOne;
+		case TokenType.True: return input.dropOne;
+		case TokenType.False: return input.dropOne;
 		default: throw new ParseException("No match tokens found", input.front.at);
 		}
 	}
@@ -426,5 +433,135 @@ public static class NewExpression
 					? a.drop(2)
 					: ExpressionList.parse(a.dropOne).consumeToken!(TokenType.CloseParenthese);
 			});
+	}
+}
+
+/// SwitchExpression = "switch" "(" Expression ")" "{" (CaseClause | DefaultClause)* "}"
+public static class SwitchExpression
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Switch;
+	}
+	public static TokenList drops(TokenList input)
+	{
+		if(input.front.type != TokenType.Switch) return input;
+		if(input.dropOne.front.type != TokenType.OpenParenthese) return input;
+		auto ine = Expression.drops(input.drop(2));
+		if(ine.front.type != TokenType.CloseParenthese) return input;
+		if(ine.dropOne.front.type != TokenType.OpenBrace) return input;
+		auto in3 = ine.drop(2)
+			.thenLoop!(a => CaseClause.canParse(a) || DefaultClause.canParse(a), (a)
+			{
+				return CaseClause.canParse(a) ? CaseClause.drops(a) : DefaultClause.drops(a);
+			});
+		if(in3.front.type != TokenType.CloseBrace) return input;
+		return in3.dropOne;
+	}
+	public static TokenList parse(TokenList input)
+	{
+		return input.consumeToken!(TokenType.Switch)
+			.then!(a => Expression.parse(a.consumeToken!(TokenType.OpenParenthese)).consumeToken!(TokenType.CloseParenthese))
+			.consumeToken!(TokenType.OpenBrace)
+			.thenLoop!(a => CaseClause.canParse(a) || DefaultClause.canParse(a), (a)
+			{
+				return CaseClause.canParse(a) ? CaseClause.parse(a) : DefaultClause.parse(a);
+			})
+			.consumeToken!(TokenType.CloseBrace);
+	}
+}
+/// DefaultClause = "default" "=>" Statement
+public static class DefaultClause
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Default;
+	}
+	public static TokenList drops(TokenList input)
+	{
+		if(input.front.type != TokenType.Default) return input;
+		if(input.dropOne.front.type != TokenType.Equal_RightAngleBracket) return input;
+		return Statement.drops(input.drop(2));
+	}
+	public static TokenList parse(TokenList input)
+	{
+		return input.consumeToken!(TokenType.Default).consumeToken!(TokenType.Equal_RightAngleBracket)
+			.then!(a => Statement.parse(a));
+	}
+}
+/// CaseClause = ValueCaseClause | TypeMatchingCaseClause
+public static class CaseClause
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Case;
+	}
+	public static TokenList drops(TokenList input)
+	{
+		if(input.take(3).map!(a => a.type).equal([TokenType.Case, TokenType.Identifier, TokenType.Colon]))
+		{
+			return TypeMatchingCaseClause.drops(input);
+		}
+		else return ValueCaseClause.drops(input);
+	}
+	public static TokenList parse(TokenList input)
+	{
+		if(input.take(3).map!(a => a.type).equal([TokenType.Case, TokenType.Identifier, TokenType.Colon]))
+		{
+			return TypeMatchingCaseClause.parse(input);
+		}
+		else return ValueCaseClause.parse(input);
+	}
+}
+/// ValueCaseClause = "case" ExpressionList "=>" Statement
+public static class ValueCaseClause
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Case;
+	}
+	public static TokenList drops(TokenList input)
+	{
+		if(input.front.type != TokenType.Case) return input;
+		auto in2 = ExpressionList.drops(input.dropOne);
+		if(in2.front.type != TokenType.Equal_RightAngleBracket) return input;
+		return Statement.drops(in2.dropOne);
+	}
+	public static TokenList parse(TokenList input)
+	{
+		return input.consumeToken!(TokenType.Case)
+			.then!(a => ExpressionList.parse(a).consumeToken!(TokenType.Equal_RightAngleBracket))
+			.then!(Statement.parse);
+	}
+}
+/// TypeMatchingCaseClause = "case" Identifier ":" Type ("," Identifier ":" Type)* "=>" Statement
+public static class TypeMatchingCaseClause
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.Case;
+	}
+	public static TokenList drops(TokenList input)
+	{
+		if(input.front.type != TokenType.Case) return input;
+		if(input.dropOne.front.type != TokenType.Identifier) return input;
+		if(input.drop(2).front.type != TokenType.Colon) return input;
+		auto in2 = Type.drops(input.drop(3))
+			.thenLoop!(a => a.front.type == TokenType.Comma, (a)
+			{
+				if(a.dropOne.front.type != TokenType.Identifier) return a;
+				if(a.drop(2).front.type != TokenType.Colon) return a;
+				return Type.drops(a.drop(3));
+			});
+		if(in2.front.type != TokenType.Equal_RightAngleBracket) return input;
+		return Statement.drops(in2.dropOne);
+	}
+	public static TokenList parse(TokenList input)
+	{
+		return input.consumeToken!(TokenType.Case).consumeToken!(TokenType.Identifier).consumeToken!(TokenType.Colon)
+			.then!(Type.parse)
+			.thenLoop!(a => a.front.type == TokenType.Comma,
+				a => Type.parse(a.dropOne.consumeToken!(TokenType.Identifier).consumeToken!(TokenType.Colon)))
+			.then!(a => Statement.parse(a.consumeToken!(TokenType.Equal_RightAngleBracket)));
 	}
 }

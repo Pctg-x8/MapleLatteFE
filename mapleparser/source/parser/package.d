@@ -70,7 +70,8 @@ unittest
 	"if(v == 3) return v + 1;".asTestCase;
 	"return input.front.type == TokenType.Asterisk ? input.dropOne : input;".asTestCase;
 	"try { if(a == 0) throw RuntimeError(\"assertion failure.\"); } catch(RuntimeError e) e.writeln; finally o.terminate();".asTestCase;
-	"switch(a){ case 2, 3 => true; case 4 => false; default => assert(false); }".asTestCase;
-	"switch(b) { case _ : int => true; default => false; }".asTestCase;
+	"switch(a){ case 2, 3 => true; case 4 => false; default => assert(false); };".asTestCase;
+	"switch(b) { case _ : int => true; default => false; };".asTestCase;
 	"throw new RuntimeError(\"a\");".asTestCase;
+	"return switch(b) { case a : int => a; default => 0; };".asTestCase;
 }

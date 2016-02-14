@@ -7,4 +7,5 @@ targetType "none"
 
 subPackage "./cli"
 subPackage "./mapleparser"
+subPackage "./mlview"
 

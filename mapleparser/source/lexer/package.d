@@ -14,7 +14,7 @@ auto parseToken1(immutable SourceObject input)
 	alias ReturnValue = Tuple!(SourceObject, Token);
 	
 	auto src2 = input.skipSpaces.skipComments;
-	if(src2.range.empty) return ReturnValue(src2, Token(src2.current, TokenType.EndOfScript));
+	if(src2.range.empty) return ReturnValue(src2, Token(src2.current, TokenType.EndOfScript, ""));
 	auto ret = src2.getToken;
 	return ReturnValue(ret.rest, ret.token);
 }

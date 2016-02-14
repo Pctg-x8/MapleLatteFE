@@ -9,7 +9,7 @@ import std.algorithm, std.range;
 
 /// Statement = IfStatement | WhileStatement | DoStatement | ForStatement | ForeachStatement
 ///	| NamedStatements | "break" [Identifier] ";" | "continue" [Identifier] ";" | "return" [Expression] ";"
-/// | "throw" Expression ";" | TryStatement | SwitchStatement
+/// | "throw" Expression ";" | TryStatement
 ///	| StatementBlock | Expression ";" | ";"
 public static class Statement
 {
@@ -21,6 +21,42 @@ public static class Statement
 			TokenType.Throw, TokenType.Try, TokenType.Switch]
 			.any!(a => a == input.front.type)
 			|| Expression.canParse(input);
+	}
+	public static TokenList drops(TokenList input)
+	{
+		switch(input.front.type)
+		{
+		case TokenType.If: return IfStatement.drops(input);
+		case TokenType.While: return WhileStatement.drops(input);
+		case TokenType.Do: return DoStatement.drops(input);
+		case TokenType.For: return ForStatement.drops(input);
+		case TokenType.Foreach: return ForeachStatement.drops(input);
+		case TokenType.Break:
+			if(input.dropOne.front.type == TokenType.Semicolon) return input.drop(2);
+			return input.dropOne.thenIf!(a => a.front.type == TokenType.Identifier, dropOne)
+				.thenIf!(a => a.front.type == TokenType.Semicolon, dropOne);
+		case TokenType.Continue:
+			if(input.dropOne.front.type == TokenType.Semicolon) return input.drop(2);
+			return input.dropOne.thenIf!(a => a.front.type == TokenType.Identifier, dropOne)
+				.thenIf!(a => a.front.type == TokenType.Semicolon, dropOne);
+		case TokenType.Return:
+			if(input.dropOne.front.type == TokenType.Semicolon) return input.drop(2);
+			return Expression.drops(input.dropOne)
+				.thenIf!(a => a.front.type == TokenType.Semicolon, dropOne);
+		case TokenType.Identifier:
+			if(input.dropOne.front.type == TokenType.Colon)
+			{
+				return NamedStatements.drops(input);
+			}
+			else goto default;
+		case TokenType.Throw:
+			return Expression.drops(input.dropOne).thenIf!(a => a.front.type == TokenType.Semicolon, dropOne);
+		case TokenType.Try: return TryStatement.drops(input);
+		case TokenType.OpenBrace: return StatementBlock.drops(input);
+		case TokenType.Semicolon: return input.dropOne;
+		default:
+			return Expression.drops(input).thenIf!(a => a.front.type == TokenType.Semicolon, dropOne);
+		}
 	}
 	public static TokenList parse(TokenList input)
 	{
@@ -49,10 +85,10 @@ public static class Statement
 		case TokenType.Throw:
 			return Expression.parse(input.dropOne).consumeToken!(TokenType.Semicolon);
 		case TokenType.Try: return TryStatement.parse(input);
-		case TokenType.Switch: return SwitchStatement.parse(input);
 		case TokenType.OpenBrace: return StatementBlock.parse(input);
 		case TokenType.Semicolon: return input.dropOne;
-		default: return Expression.parse(input).consumeToken!(TokenType.Semicolon);
+		default:
+			return Expression.parse(input).consumeToken!(TokenType.Semicolon);
 		}
 	}
 }
@@ -62,6 +98,19 @@ public static class NamedStatements
 	public static bool canParse(TokenList input)
 	{
 		return input.front.type == TokenType.Identifier;
+	}
+	public static TokenList drops(TokenList input)
+	{
+		auto in2 = input.thenIf!(a => a.front.type == TokenType.Identifier, dropOne)
+			.thenIf!(a => a.front.type == TokenType.Colon, dropOne);
+		switch(in2.front.type)
+		{
+		case TokenType.While: return WhileStatement.parse(in2);
+		case TokenType.Do: return DoStatement.parse(in2);
+		case TokenType.For: return ForStatement.parse(in2);
+		case TokenType.Foreach: return ForeachStatement.parse(in2);
+		default: return input;
+		}
 	}
 	public static TokenList parse(TokenList input)
 	{
@@ -84,6 +133,21 @@ public static class StatementBlock
 	{
 		return input.front.type == TokenType.OpenBrace;
 	}
+	public static TokenList drops(TokenList input)
+	{
+		return input.thenIf!(a => a.front.type == TokenType.OpenBrace, dropOne)
+			.thenLoop!(a => a.front.type != TokenType.CloseBrace, (a)
+			{
+				if([TokenType.Var, TokenType.Val, TokenType.Const, TokenType.Auto].any!(b => a.front.type == b))
+				{
+					return LocalVariableDeclarator.parse(a);
+				}
+				auto vdd = InferableType.drops(a);
+				if(vdd.front.type == TokenType.Identifier) return LocalVariableDeclarator.drops(a);
+				return Statement.drops(a);
+			})
+			.thenIf!(a => a.front.type != TokenType.CloseBrace, dropOne);
+	}
 	public static TokenList parse(TokenList input)
 	{
 		static TokenList loop(TokenList input)
@@ -102,14 +166,37 @@ public static class StatementBlock
 	}
 }
 
-/// LocalVariableDeclarator = ("var" | "val" | "const" [InferableType]) VariableDeclarator ("," VariableDeclarator)* ";"
-///		| InferableType VariableDeclarator ("," VariableDeclarator)* ";"
+/// LocalVariableDeclarator = ("var" | "val" | "const" [InferableType] | InferableType) VariableDeclarator ("," VariableDeclarator)* ";"
 public static class LocalVariableDeclarator
 {
 	public static bool canParse(TokenList input)
 	{
 		return [TokenType.Var, TokenType.Val, TokenType.Const].any!(a => a == input.front.type)
 			|| InferableType.canParse(input);
+	}
+	public static TokenList drops(TokenList input)
+	{
+		return input.then!((a)
+		{
+			switch(a.front.type)
+			{
+			case TokenType.Var: case TokenType.Val:
+				return VariableDeclarator.drops(a.dropOne);
+			case TokenType.Const:
+			{
+				auto in2_vd = InferableType.drops(a.dropOne);
+				if(in2_vd.front.type == TokenType.Identifier)
+				{
+					return VariableDeclarator.drops(InferableType.drops(a.dropOne));
+				}
+				else return VariableDeclarator.drops(a.dropOne);
+			}
+			default:
+				return VariableDeclarator.drops(InferableType.drops(a));
+			}
+		})
+		.thenLoop!(a => a.front.type == TokenType.Comma, a => VariableDeclarator.drops(a.dropOne))
+		.thenIf!(a => a.front.type == TokenType.Semicolon, dropOne);
 	}
 	public static TokenList parse(TokenList input)
 	{
@@ -169,6 +256,15 @@ public static class IfStatement
 	{
 		return input.front.type == TokenType.If;
 	}
+	public static TokenList drops(TokenList input)
+	{
+		return input.thenIf!(a => a.front.type == TokenType.If, dropOne)
+			.thenIf!(a => a.front.type == TokenType.OpenParenthese, dropOne)
+			.then!(Expression.drops)
+			.thenIf!(a => a.front.type == TokenType.CloseParenthese, dropOne)
+			.then!(Statement.drops)
+			.thenIf!(a => a.front.type == TokenType.Else, a => Statement.drops(a.dropOne));
+	}
 	public static TokenList parse(TokenList input)
 	{
 		auto in2 = Statement.parse(Expression.parse(input.consumeToken!(TokenType.If).consumeToken!(TokenType.OpenParenthese))
@@ -187,6 +283,14 @@ public static class WhileStatement
 	{
 		return input.front.type == TokenType.While;
 	}
+	public static TokenList drops(TokenList input)
+	{
+		return input.thenIf!(a => a.front.type == TokenType.While, dropOne)
+			.thenIf!(a => a.front.type == TokenType.OpenParenthese, dropOne)
+			.then!(Expression.drops)
+			.thenIf!(a => a.front.type == TokenType.CloseParenthese, dropOne)
+			.then!(Statement.drops);
+	}
 	public static TokenList parse(TokenList input)
 	{
 		return Statement.parse(Expression.parse(input.consumeToken!(TokenType.While).consumeToken!(TokenType.OpenParenthese))
@@ -199,6 +303,16 @@ public static class DoStatement
 	public static bool canParse(TokenList input)
 	{
 		return input.front.type == TokenType.Do;
+	}
+	public static TokenList drops(TokenList input)
+	{
+		return input.thenIf!(a => a.front.type == TokenType.Do, dropOne)
+			.then!(Statement.drops)
+			.thenIf!(a => a.front.type == TokenType.While, dropOne)
+			.thenIf!(a => a.front.type == TokenType.OpenParenthese, dropOne)
+			.then!(Expression.drops)
+			.thenIf!(a => a.front.type == TokenType.CloseParenthese, dropOne)
+			.thenIf!(a => a.front.type == TokenType.Semicolon, dropOne);
 	}
 	public static TokenList parse(TokenList input)
 	{
@@ -213,6 +327,30 @@ public static class ForStatement
 	public static bool canParse(TokenList input)
 	{
 		return input.front.type == TokenType.For;
+	}
+	public static TokenList drops(TokenList input)
+	{
+		return input.thenIf!(a => a.front.type == TokenType.For, dropOne)
+			.thenIf!(a => a.front.type == TokenType.OpenParenthese, dropOne)
+			.then!((a)
+			{
+				switch(a.front.type)
+				{
+				case TokenType.Semicolon: return a.dropOne;
+				case TokenType.Val: case TokenType.Var: case TokenType.Const: case TokenType.Auto:
+					return LocalVariableDeclarator.drops(a);
+				default: break;
+				}
+				auto vdd = InferableType.drops(a);
+				if(vdd.front.type == TokenType.Identifier)
+				{
+					return LocalVariableDeclarator.drops(a);
+				}
+				return Expression.drops(a).thenIf!(a => a.front.type == TokenType.Semicolon, dropOne);
+			})
+			.then!(a => a.front.type == TokenType.Semicolon ? a.dropOne : Expression.drops(a).consumeToken!(TokenType.Semicolon))
+			.then!(a => a.front.type == TokenType.CloseParenthese ? a.dropOne : Expression.drops(a).consumeToken!(TokenType.CloseParenthese))
+			.then!(a => Statement.drops(a));
 	}
 	public static TokenList parse(TokenList input)
 	{
@@ -244,6 +382,29 @@ public static class ForeachStatement
 	{
 		return input.front.type == TokenType.Foreach;
 	}
+	public static TokenList drops(TokenList input)
+	{
+		return input.thenIf!(a => a.front.type == TokenType.Foreach, dropOne)
+			.thenIf!(a => a.front.type == TokenType.OpenParenthese, dropOne)
+			.then!((a)
+			{
+				if([TokenType.Var, TokenType.Val].any!(b => b == a.front.type))
+				{
+					return a.dropOne;
+				}
+				if(a.front.type == TokenType.Const)
+				{
+					auto it = InferableType.drops(a.dropOne);
+					return it.front.type == TokenType.Identifier ? InferableType.drops(a.dropOne) : a.dropOne;
+				}
+				return InferableType.drops(a);
+			})
+			.thenIf!(a => a.front.type == TokenType.Identifier, dropOne)
+			.thenIf!(a => a.front.type == TokenType.In, dropOne)
+			.then!(a => Expression.drops(a))
+			.thenIf!(a => a.front.type == TokenType.CloseParenthese, dropOne)
+			.then!(a => Statement.drops(a));
+	}
 	public static TokenList parse(TokenList input)
 	{
 		return input.consumeToken!(TokenType.Foreach).consumeToken!(TokenType.OpenParenthese)
@@ -271,11 +432,18 @@ public static class TryStatement
 	{
 		return input.front.type == TokenType.Try;
 	}
+	public static TokenList drops(TokenList input)
+	{
+		return input.thenIf!(a => a.front.type == TokenType.Try, dropOne)
+			.then!(Statement.drops)
+			.thenLoop!(CatchClause.canParse, CatchClause.drops)
+			.thenIf!(FinallyClause.canParse, FinallyClause.drops);
+	}
 	public static TokenList parse(TokenList input)
 	{
 		return Statement.parse(input.consumeToken!(TokenType.Try))
-			.thenLoop!(a => CatchClause.canParse(a), a => CatchClause.parse(a))
-			.thenIf!(a => FinallyClause.canParse(a), a => FinallyClause.parse(a));
+			.thenLoop!(CatchClause.canParse, CatchClause.parse)
+			.thenIf!(FinallyClause.canParse, FinallyClause.parse);
 	}
 }
 /// CatchClause = "catch" "(" ["const"] Type Identifier ")" Statement
@@ -285,12 +453,22 @@ public static class CatchClause
 	{
 		return input.front.type == TokenType.Catch;
 	}
+	public static TokenList drops(TokenList input)
+	{
+		return input.thenIf!(a => a.front.type == TokenType.Catch, dropOne)
+			.thenIf!(a => a.front.type == TokenType.OpenParenthese, dropOne)
+			.thenIf!(a => a.front.type == TokenType.Const, dropOne)
+			.then!(Type.drops)
+			.thenIf!(a => a.front.type == TokenType.Identifier, dropOne)
+			.thenIf!(a => a.front.type == TokenType.CloseParenthese, dropOne)
+			.then!(Statement.drops);
+	}
 	public static TokenList parse(TokenList input)
 	{
 		return input.consumeToken!(TokenType.Catch).consumeToken!(TokenType.OpenParenthese)
 			.thenIf!(a => a.front.type == TokenType.Const, a => a.dropOne)
 			.then!(a => Type.parse(a).consumeToken!(TokenType.Identifier).consumeToken!(TokenType.CloseParenthese))
-			.then!(a => Statement.parse(a));
+			.then!(Statement.parse);
 	}
 }
 /// FinallyClause = "finally" Statement
@@ -300,86 +478,13 @@ public static class FinallyClause
 	{
 		return input.front.type == TokenType.Finally;
 	}
+	public static TokenList drops(TokenList input)
+	{
+		return input.thenIf!(a => a.front.type == TokenType.Finally, dropOne)
+			.then!(Statement.drops);
+	}
 	public static TokenList parse(TokenList input)
 	{
 		return Statement.parse(input.consumeToken!(TokenType.Finally));
-	}
-}
-/// SwitchStatement = "switch" "(" Expression ")" "{" (CaseClause | DefaultClause)* "}"
-public static class SwitchStatement
-{
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.Switch;
-	}
-	public static TokenList parse(TokenList input)
-	{
-		return input.consumeToken!(TokenType.Switch)
-			.then!(a => Expression.parse(a.consumeToken!(TokenType.OpenParenthese)).consumeToken!(TokenType.CloseParenthese))
-			.consumeToken!(TokenType.OpenBrace)
-			.thenLoop!(a => CaseClause.canParse(a) || DefaultClause.canParse(a), (a)
-			{
-				return CaseClause.canParse(a) ? CaseClause.parse(a) : DefaultClause.parse(a);
-			})
-			.consumeToken!(TokenType.CloseBrace);
-	}
-}
-/// DefaultClause = "default" "=>" Statement
-public static class DefaultClause
-{
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.Default;
-	}
-	public static TokenList parse(TokenList input)
-	{
-		return input.consumeToken!(TokenType.Default).consumeToken!(TokenType.Equal_RightAngleBracket)
-			.then!(a => Statement.parse(a));
-	}
-}
-/// CaseClause = ValueCaseClause | TypeMatchingCaseClause
-public static class CaseClause
-{
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.Case;
-	}
-	public static TokenList parse(TokenList input)
-	{
-		if(input.take(3).map!(a => a.type).equal([TokenType.Case, TokenType.Identifier, TokenType.Colon]))
-		{
-			return TypeMatchingCaseClause.parse(input);
-		}
-		else return ValueCaseClause.parse(input);
-	}
-}
-/// ValueCaseClause = "case" ExpressionList "=>" Statement
-public static class ValueCaseClause
-{
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.Case;
-	}
-	public static TokenList parse(TokenList input)
-	{
-		return input.consumeToken!(TokenType.Case)
-			.then!(a => ExpressionList.parse(a).consumeToken!(TokenType.Equal_RightAngleBracket))
-			.then!(Statement.parse);
-	}
-}
-/// TypeMatchingCaseClause = "case" Identifier ":" Type ("," Identifier ":" Type)* "=>" Statement
-public static class TypeMatchingCaseClause
-{
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.Case;
-	}
-	public static TokenList parse(TokenList input)
-	{
-		return input.consumeToken!(TokenType.Case).consumeToken!(TokenType.Identifier).consumeToken!(TokenType.Colon)
-			.then!(Type.parse)
-			.thenLoop!(a => a.front.type == TokenType.Comma,
-				a => Type.parse(a.dropOne.consumeToken!(TokenType.Identifier).consumeToken!(TokenType.Colon)))
-			.then!(a => Statement.parse(a.consumeToken!(TokenType.Equal_RightAngleBracket)));
 	}
 }

@@ -13,68 +13,62 @@ final struct Token
 	private Location _at;
 	private TokenType _type;
 	private ValueType _val;
-	private bool has_value = false;
+	private string sourceText;
 	
 	/// Duplication
 	public @property dup() pure
 	{
-		return Token(this._at, this._type, this._val, this.has_value);
+		return Token(this._at, this._type, this._val, this.sourceText);
 	}
 	
 	/// Private constructor for idup
-	private this(Location l, TokenType t, ValueType v, bool hv) pure
+	private this(Location l, TokenType t, ValueType v, immutable string st) pure
 	{
 		this._at = l;
 		this._type = t;
 		this._val = v;
-		this.has_value = hv;
+		this.sourceText = st.dup;
 	}
 	
-	/// Construct token
-	public this(Location a, TokenType t) pure
-	{
-		this._at = a;
-		this._type = t;
-	}
 	/// Construct token with string value
-	public this(Location a, TokenType t, immutable(string) v) pure
+	public this(Location a, TokenType t, immutable string v) pure
 	{
 		this._at = a;
 		this._type = t;
 		this._val = v.idup;
-		this.has_value = true;
+		this.sourceText = v;
 	}
 	/// Construct token with real value
-	public this(Location a, TokenType t, real r) pure
+	public this(Location a, TokenType t, immutable string st, real r) pure
 	{
 		this._at = a;
 		this._type = t;
 		this._val = r;
-		this.has_value = true;
+		this.sourceText = st.dup;
 	}
 	/// Construct token with float value
-	public this(Location a, TokenType t, float f) pure
+	public this(Location a, TokenType t, immutable string st, float f) pure
 	{
 		this._at = a;
 		this._type = t;
 		this._val = f;
-		this.has_value = true;
+		this.sourceText = st.dup;
 	}
 	/// Construct token with double value
-	public this(Location a, TokenType t, double d) pure
+	public this(Location a, TokenType t, immutable string st, double d) pure
 	{
 		this._at = a;
 		this._type = t;
 		this._val = d;
-		this.has_value = true;
+		this.sourceText = st.dup;
 	}
 	/// Construct token with long value
-	public this(Location a, TokenType t, long l) pure
+	public this(Location a, TokenType t, immutable string st, long l) pure
 	{
 		this._at = a;
 		this._type = t;
 		this._val = l;
-		this.has_value = true;
+		this.sourceText = st.dup;
 	}
 	
 public @property:
@@ -84,15 +78,15 @@ public @property:
 	auto type() const { return this._type; }
 	/// Value of token
 	auto value(T)() const { return this._val.get!T; }
-	/// Has a value
-	auto hasValue() const { return this.has_value; }
+	/// Has a value of specified type
+	auto hasValue(T)() const { return this._val.peek!T !is null; }
+	/// Source text
+	auto source() const { return this.sourceText; }
 }
 unittest
 {
 	assert(Token(Location.init, TokenType.Identifier, "test").dup == Token(Location.init, TokenType.Identifier, "test"));
 	assert(Token(Location(4, 3), TokenType.Identifier, "test").at == Location(4, 3));
-	assert(Token(Location(4, 3), TokenType.Identifier, "test").hasValue);
-	assert(!Token(Location(4, 3), TokenType.Plus2).hasValue);
 }
 
 /// List of token(Infinite lazy list)
@@ -117,7 +111,7 @@ public struct TokenList
 	/// Range Primitive: Front element
 	public @property Token front()
 	{
-		if(this.rest_source.range.empty) return Token(this.pointer_at, TokenType.EndOfScript);
+		if(this.rest_source.range.empty) return Token(this.pointer_at, TokenType.EndOfScript, "");
 		if(!this.has_stock) this.parseToken();
 		return this.current_stock;
 	}
@@ -159,5 +153,33 @@ enum TokenType
 	
 	Package, This, Super, Global, If, Else, For, Foreach, While, Do, Break, Continue, Return,
 	Void, Char, Uchar, Byte, Short, Ushort, Word, Int, Uint, Dword, Long, Ulong, Qword, Float, Double, Auto,
-	Var, Val, Const, In, Throw, Try, Catch, Finally, Switch, Case, Default, New
+	Var, Val, Const, In, Throw, Try, Catch, Finally, Switch, Case, Default, New, True, False
+}
+bool isControlKeyword(TokenType t)
+{
+	import std.algorithm : any;
+	
+	return [TokenType.Package,
+		TokenType.If, TokenType.Else, TokenType.For, TokenType.Foreach, TokenType.While, TokenType.Do,
+		TokenType.Break, TokenType.Continue, TokenType.Return, TokenType.Throw,
+		TokenType.Try, TokenType.Catch, TokenType.Finally, TokenType.Switch, TokenType.Case, TokenType.Default,
+		TokenType.In]
+		.any!(a => a == t);
+}
+bool isExpressionKeyword(TokenType t)
+{
+	import std.algorithm : any;
+	
+	return [TokenType.This, TokenType.Super, TokenType.Global,
+		TokenType.New, TokenType.True, TokenType.False]
+		.any!(a => a == t);
+}
+bool isTypeKeyword(TokenType t)
+{
+	import std.algorithm : any;
+	
+	return [TokenType.Void, TokenType.Char, TokenType.Uchar, TokenType.Byte, TokenType.Short, TokenType.Ushort,
+		TokenType.Word, TokenType.Int, TokenType.Uint, TokenType.Dword, TokenType.Long, TokenType.Ulong,
+		TokenType.Qword, TokenType.Float, TokenType.Double, TokenType.Auto, TokenType.Var, TokenType.Val, TokenType.Const]
+		.any!(a => a == t);
 }
