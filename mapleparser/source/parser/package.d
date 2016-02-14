@@ -72,4 +72,5 @@ unittest
 	"try { if(a == 0) throw RuntimeError(\"assertion failure.\"); } catch(RuntimeError e) e.writeln; finally o.terminate();".asTestCase;
 	"switch(a){ case 2, 3 => true; case 4 => false; default => assert(false); }".asTestCase;
 	"switch(b) { case _ : int => true; default => false; }".asTestCase;
+	"throw new RuntimeError(\"a\");".asTestCase;
 }

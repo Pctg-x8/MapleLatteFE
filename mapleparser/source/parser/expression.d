@@ -2,8 +2,9 @@ module mlfe.mapleparser.parser.expression;
 
 import mlfe.mapleparser.parser.base;
 import mlfe.mapleparser.parser.symbol;
-import mlfe.mapleparser.lexer.token;
+import mlfe.mapleparser.parser.type;
 import mlfe.mapleparser.parser.exceptions;
+import mlfe.mapleparser.lexer.token;
 import std.algorithm, std.range;
 
 /// Expression = TriExpression [AssignOps Expression]
@@ -253,13 +254,13 @@ public static class PostfixExpression
 }
 
 /// PrimaryExpression = Literal | SpecialLiteral | ComplexLiteral
-///		| TemplateInstance | "." TemplateInstance | "global" "." TemplateInstance" | "(" Expression ")"
+///		| TemplateInstance | "." TemplateInstance | "global" "." TemplateInstance" | NewExpression | "(" Expression ")"
 public static class PrimaryExpression
 {
 	public static bool canParse(TokenList input)
 	{
 		return input.front.type == TokenType.OpenParenthese || input.front.type == TokenType.Period
-			|| input.front.type == TokenType.Global
+			|| input.front.type == TokenType.Global || input.front.type == TokenType.New
 			|| Literal.canParse(input) || SpecialLiteral.canParse(input) || TemplateInstance.canParse(input)
 			|| ComplexLiteral.canParse(input);
 	}
@@ -279,6 +280,7 @@ public static class PrimaryExpression
 			if(input.dropOne.front.type != TokenType.Period) return input;
 			return TemplateInstance.drops(input.drop(2));
 		}
+		case TokenType.New: return NewExpression.drops(input);
 		default: break;
 		}
 		if(TemplateInstance.canParse(input)) return TemplateInstance.drops(input);
@@ -294,6 +296,7 @@ public static class PrimaryExpression
 		case TokenType.OpenParenthese: return Expression.parse(input.dropOne).consumeToken!(TokenType.CloseParenthese);
 		case TokenType.Period: return TemplateInstance.parse(input.dropOne);
 		case TokenType.Global: return TemplateInstance.parse(input.dropOne.consumeToken!(TokenType.Period));
+		case TokenType.New: return NewExpression.parse(input);
 		default: break;
 		}
 		if(TemplateInstance.canParse(input)) return TemplateInstance.parse(input);
@@ -376,5 +379,52 @@ public static class ComplexLiteral
 		auto in2 = input.consumeToken!(TokenType.OpenBracket);
 		if(in2.front.type == TokenType.CloseBracket) return in2.dropOne;
 		else return ExpressionList.parse(in2).consumeToken!(TokenType.CloseBracket);
+	}
+}
+
+/// NewExpression = "new" Type ("[" [Expression] "]")* ["(" [ExpressionList] ")"]
+public static class NewExpression
+{
+	public static bool canParse(TokenList input)
+	{
+		return input.front.type == TokenType.New;
+	}
+	public static TokenList drops(TokenList input)
+	{
+		if(input.front.type != TokenType.New) return input;
+		return Type.drops(input.dropOne)
+			.thenLoop!(a => a.front.type == TokenType.OpenBracket, (a)
+			{
+				if(a.dropOne.front.type == TokenType.CloseBracket) return a.drop(2);
+				else
+				{
+					return Expression.drops(a.dropOne)
+						.then!(b => b.front.type == TokenType.CloseBracket ? b.dropOne : a);
+				}
+			})
+			.thenIf!(a => a.front.type == TokenType.OpenParenthese, (a)
+			{
+				return a.dropOne.front.type == TokenType.CloseParenthese
+					? a.drop(2)
+					: ExpressionList.drops(a.dropOne)
+						.then!(b => b.front.type == TokenType.CloseParenthese ? b.dropOne : a);
+			});
+	}
+	public static TokenList parse(TokenList input)
+	{
+		return input.consumeToken!(TokenType.New)
+			.then!(Type.parse)
+			.thenLoop!(a => a.front.type == TokenType.OpenBracket, (a)
+			{
+				return a.dropOne.front.type == TokenType.CloseBracket
+					? a.drop(2)
+					: Expression.parse(a.dropOne).consumeToken!(TokenType.CloseBracket);
+			})
+			.thenIf!(a => a.front.type == TokenType.OpenParenthese, (a)
+			{
+				return a.dropOne.front.type == TokenType.CloseParenthese
+					? a.drop(2)
+					: ExpressionList.parse(a.dropOne).consumeToken!(TokenType.CloseParenthese);
+			});
 	}
 }

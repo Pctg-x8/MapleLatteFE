@@ -160,6 +160,7 @@ auto getToken(immutable SourceObject src)
 		case "switch": return makeToken!(TokenType.Switch);
 		case "case": return makeToken!(TokenType.Case);
 		case "default": return makeToken!(TokenType.Default);
+		case "new": return makeToken!(TokenType.New);
 		default: return Get_TokenResult(Token(src.current, TokenType.Identifier, id_temp), src2);
 		}
 	}
