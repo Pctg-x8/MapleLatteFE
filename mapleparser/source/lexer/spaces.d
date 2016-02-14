@@ -13,51 +13,50 @@ pure auto isLineBreaker(dchar ch) { return ch == '\n' || ch == '\r'; }
 pure auto isSpaceChar(dchar ch) { return ch == ' ' || ch == '\t' || ch.isLineBreaker; }
 
 /// Skip any spaces
-auto skipSpaces(immutable(SourceObject) src) pure
+auto skipSpaces(immutable SourceObject src)
 {
-	static SourceObject recursive(immutable(SourceObject) src)
+	SourceObject recursive(immutable SourceObject src)
 	{
 		return src.range.empty || !src.range.front.isSpaceChar ? src : recursive(src.followOne);
 	}
 	return recursive(src);
 }
 /// Skip comments
-auto skipComments(immutable(SourceObject) src) pure
+auto skipComments(immutable SourceObject src)
 {
-	static SourceObject recursive(immutable(SourceObject) src)
+	SourceObject recursive(immutable SourceObject src)
 	{
 		if(src.range.count < 2) return src;
 		switch(src.range[0 .. 2])
 		{
-		case "//": return recursive(src.skipLineComment.skipSpaces);
-		case "/*": return recursive(src.skipBlockedComment.skipSpaces);
+		case "//": return recursive(src.forward(2).skipLineComment.skipSpaces);
+		case "/*": return recursive(src.forward(2).skipBlockedComment.skipSpaces);
 		default: return src;
 		}
 	}
 	return recursive(src);
 }
 /// Skip line commments
-auto skipLineComment(immutable(SourceObject) src)
+auto skipLineComment(immutable SourceObject src)
 {
-	auto r = src.range.drop(2);
-	auto l = src.current.forward(2);
-	
-	while(!r.empty && !r.front.isLineBreaker) { r = r.dropOne; l = l.forward; }
-	return SourceObject(r, l);
+	SourceObject loop(immutable SourceObject src)
+	{
+		if(src.range.empty || src.range.front.isLineBreaker) return src;
+		return loop(src.followOne);
+	}
+	return loop(src);
 }
 /// Skip blocked comments
-auto skipBlockedComment(immutable(SourceObject) src)
+auto skipBlockedComment(immutable SourceObject src)
 {
-	auto r = src.range.drop(2);
-	auto l = src.current.forward(2);
+	SourceObject src2 = src;
 	
 	bool succeeded = false;
-	while(r.count >= 2)
+	while(src2.range.count >= 2)
 	{
-		if(r[0 .. 2] == "*/") { succeeded = true; break; }
-		l = l.follow(r.front);
-		r = r.drop(1);
+		if(src2.range[0 .. 2] == "*/") { succeeded = true; break; }
+		src2 = src2.followOne;
 	}
-	if(!succeeded) throw new LexicalizeError(l, "Invalid end of blocked comment");
-	return SourceObject(r.drop(2), l.follow(2));
+	if(!succeeded) throw new LexicalizeError(src2.current, "Invalid end of blocked comment");
+	return src2.forward(2);
 }

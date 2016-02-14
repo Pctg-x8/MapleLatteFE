@@ -17,7 +17,7 @@ struct Get_TokenResult
 	SourceObject rest;
 }
 /// Token rules
-auto getToken(immutable SourceObject src) pure
+auto getToken(immutable SourceObject src)
 {
 	auto TokenResult(size_t fwd, TokenType tp) pure
 	{
@@ -161,12 +161,12 @@ auto getToken(immutable SourceObject src) pure
 
 alias CharValue = Tuple!(dchar, SourceObject);
 /// Parse character in literal
-auto parseAsCharacter(immutable SourceObject input) pure
+auto parseAsCharacter(immutable SourceObject input)
 {
 	return input.range.front == '\\' ? input.parseAsEscapedCharacter() : CharValue(input.range.front, input.followOne);
 }
 /// Parse escaped character in literal
-auto parseAsEscapedCharacter(immutable SourceObject input) pure
+auto parseAsEscapedCharacter(immutable SourceObject input)
 {
 	if(input.range.count <= 1) throw new LexicalizeError(input.current, "Invalid escape sequence");
 	switch(input.range.dropOne.front)
@@ -179,7 +179,7 @@ auto parseAsEscapedCharacter(immutable SourceObject input) pure
 }
 
 /// Parse characters as string literal
-auto parseStringToken(immutable SourceObject input) pure
+auto parseStringToken(immutable SourceObject input)
 {
 	auto content_range = input.forward(1);
 	string temp = "";
@@ -194,7 +194,7 @@ auto parseStringToken(immutable SourceObject input) pure
 	return Get_TokenResult(Token(input.current, TokenType.StringLiteral, temp), content_range.forward(1));
 }
 /// Parse character literal
-auto parseCharacterToken(immutable SourceObject input) pure
+auto parseCharacterToken(immutable SourceObject input)
 {
 	auto content_range = input.forward(1);
 	void exception() pure { throw new LexicalizeError(content_range.current, "Invalid character literal"); }

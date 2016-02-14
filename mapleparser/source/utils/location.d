@@ -21,12 +21,22 @@ unittest
 {
 	assert(Location(3, 3).dup == Location(3, 3));
 	assert(Location(3, 3).toString == "3:3");
+	assert(Location(3, 1).follow('\t', 4) == Location(3, 5));
+	assert(Location(3, 2).follow('\t', 4) == Location(3, 5));
 }
 
 /+ utility functions +/
 /// Forward column(s)
-auto forward(immutable(Location) loc, size_t count = 1) { return Location(loc.line, loc.column + count); }
+auto forward(immutable Location loc, size_t count = 1) pure { return Location(loc.line, loc.column + count); }
 /// Break a line
-auto breakLine(immutable(Location) loc) { return Location(loc.line + 1, 1); }
+auto breakLine(immutable Location loc) pure { return Location(loc.line + 1, 1); }
 /// Follow action by character
-auto follow(immutable(Location) loc, dchar chr) { return chr == '\n' ? loc.breakLine : loc.forward; }
+auto follow(immutable Location loc, dchar chr, uint tabSpace) pure
+{
+	switch(chr)
+	{
+	case '\n': return loc.breakLine;
+	case '\t': return Location(loc.line, (((loc.column - 1) / tabSpace) + 1) * tabSpace + 1);
+	default: return loc.forward;
+	}
+}

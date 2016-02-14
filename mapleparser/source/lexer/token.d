@@ -112,7 +112,7 @@ public struct TokenList
 		this.has_stock = false;
 	}
 	
-	/// Range Primitive: Returns if range is empty(always false)
+	/// Range Primitive: Returns true if range is empty(always false)
 	immutable bool empty = false;
 	/// Range Primitive: Front element
 	public @property Token front()

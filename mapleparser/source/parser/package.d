@@ -69,4 +69,5 @@ unittest
 	"loop1: while(true) for(var i = 0; i < 3; i++) if(i == 2) break loop1;".asTestCase;
 	"while(true) continue;".asTestCase;
 	"if(v == 3) return v + 1;".asTestCase;
+	"return input.front.type == TokenType.Asterisk ? input.dropOne : input;".asTestCase;
 }
