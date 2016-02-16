@@ -7,27 +7,6 @@ import mlfe.mapleparser.parser.statement;
 import mlfe.mapleparser.parser.exceptions;
 import mlfe.mapleparser.lexer.token;
 import std.algorithm, std.range;
-/*
-/// Expression = TriExpression [AssignOps Expression]
-public static class Expression
-{
-	public static immutable canParse = TriExpression.canParse;
-	public static TokenList drops(TokenList input)
-	{
-		return TriExpression.drops(input)
-			.thenIf!(a => AssignOps.canParse(a), a => Expression.drops(AssignOps.drops(a)));
-	}
-	public static TokenList parse(TokenList input)
-	{
-		auto in2_tx = TriExpression.parse(input);
-		if(AssignOps.canParse(in2_tx))
-		{
-			return in2_tx.then!(AssignOps.parse).then!(Expression.parse);
-		}
-		else return in2_tx;
-	}
-}
-*/
 
 /// ExpressionList = Expression ("," Expression)*
 public ParseResult matchExpressionList(ParseResult input)
@@ -56,6 +35,11 @@ unittest
 	assert(Cont("data.element->double".asTokenList).matchExpression.succeeded);
 	assert(Cont("2 + 3".asTokenList).matchExpression.succeeded);
 	assert(Cont("x = 3.4f * vec.length".asTokenList).matchExpression.succeeded);
+	assert(Cont("x = match(a) { case 0, 2 => true; default => false; }".asTokenList).matchExpression.succeeded);
+	assert(Cont("x = match(a) { case 0, 2 => true; default => false }".asTokenList).matchExpression.succeeded);
+	assert(Cont("fun = x => x + 2".asTokenList).matchExpression.succeeded);
+	assert(Cont("fun2 = (x, y) { val a = x + y; }".asTokenList).matchExpression.succeeded);
+	assert(Cont("v = ((x, y) => x * y)(2, 3)".asTokenList).matchExpression.succeeded);
 }
 
 /// AssignOps(Set of tokens) = "=" | "+=" | "-=" | "*=" | "/=" | "%="
@@ -147,14 +131,17 @@ public ParseResult matchPostfixExpression(ParseResult input)
 		x => x.matchToken!(TokenType.Minus_RightAngleBracket).matchType
 	));
 }
-/// PrimaryExpression = "(" Expression ")" / "[" [ExpressionList] "]" / NewExpression
-///		/ TemplateInstance / "." TemplateInstance / "global" "." TemplateInstance" / Literal / SpecialLiteral
+/// PrimaryExpression = "(" Expression ")" / "[" [ExpressionList] "]" / NewExpression / MatchExpression
+///		/ LambdaExpression / TemplateInstance / "." TemplateInstance / "global" "." TemplateInstance"
+///		/ Literal / SpecialLiteral
 public ParseResult matchPrimaryExpression(ParseResult input)
 {
 	return input.select!(
 		x => x.matchToken!(TokenType.OpenParenthese).matchExpression.matchToken!(TokenType.CloseParenthese),
 		x => x.matchToken!(TokenType.OpenBracket).ignorable!matchExpressionList.matchToken!(TokenType.CloseBracket),
 		x => x.matchNewExpression,
+		x => x.matchMatchExpression,
+		x => x.matchLambdaExpression,
 		x => x.matchTemplateInstance,
 		x => x.matchToken!(TokenType.Period).matchTemplateInstance,
 		x => x.matchToken!(TokenType.Global).matchToken!(TokenType.Period).matchTemplateInstance,
@@ -197,135 +184,71 @@ public ParseResult matchNewExpression(ParseResult input)
 		.ignorable!(x => x.matchToken!(TokenType.OpenParenthese)
 			.ignorable!matchExpressionList.matchToken!(TokenType.CloseParenthese));
 }
-
-/*
-/// SwitchExpression = "switch" "(" Expression ")" "{" (CaseClause | DefaultClause)* "}"
-public static class SwitchExpression
+/// LambdaExpression = SingleLambdaExpression / MultipleLambdaExpression / ClosureExpression
+public ParseResult matchLambdaExpression(ParseResult input)
 {
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.Switch;
-	}
-	public static TokenList drops(TokenList input)
-	{
-		if(input.front.type != TokenType.Switch) return input;
-		if(input.dropOne.front.type != TokenType.OpenParenthese) return input;
-		auto ine = Expression.drops(input.drop(2));
-		if(ine.front.type != TokenType.CloseParenthese) return input;
-		if(ine.dropOne.front.type != TokenType.OpenBrace) return input;
-		auto in3 = ine.drop(2)
-			.thenLoop!(a => CaseClause.canParse(a) || DefaultClause.canParse(a), (a)
-			{
-				return CaseClause.canParse(a) ? CaseClause.drops(a) : DefaultClause.drops(a);
-			});
-		if(in3.front.type != TokenType.CloseBrace) return input;
-		return in3.dropOne;
-	}
-	public static TokenList parse(TokenList input)
-	{
-		return input.consumeToken!(TokenType.Switch)
-			.then!(a => Expression.parse(a.consumeToken!(TokenType.OpenParenthese)).consumeToken!(TokenType.CloseParenthese))
-			.consumeToken!(TokenType.OpenBrace)
-			.thenLoop!(a => CaseClause.canParse(a) || DefaultClause.canParse(a), (a)
-			{
-				return CaseClause.canParse(a) ? CaseClause.parse(a) : DefaultClause.parse(a);
-			})
-			.consumeToken!(TokenType.CloseBrace);
-	}
+	return input.select!(
+		matchSingleLambdaExpression, matchMultipleLambdaExpression,
+		matchClosureExpression
+	);
+}
+/// SingleLambdaExpression = Identifier "=>" Expression
+public ParseResult matchSingleLambdaExpression(ParseResult input)
+{
+	return input.matchToken!(TokenType.Identifier).matchToken!(TokenType.Equal_RightAngleBracket).matchExpression;
+}
+/// MultipleLambdaExpression = "(" [Identifier ("," Identifier)*] ")" "=>" Expression
+public ParseResult matchMultipleLambdaExpression(ParseResult input)
+{
+	return input.matchToken!(TokenType.OpenParenthese)
+		.ignorable!(x => x.matchToken!(TokenType.Identifier).matchUntilFail!(
+			x => x.matchToken!(TokenType.Comma).matchToken!(TokenType.Identifier)
+		))
+		.matchToken!(TokenType.CloseParenthese)
+		.matchToken!(TokenType.Equal_RightAngleBracket).matchExpression;
+}
+/// ClosureExpression = "(" [Identifier ("," Identifier)*] ")" StatementBlock
+public ParseResult matchClosureExpression(ParseResult input)
+{
+	return input.matchToken!(TokenType.OpenParenthese)
+		.ignorable!(x => x.matchToken!(TokenType.Identifier).matchUntilFail!(
+			x => x.matchToken!(TokenType.Comma).matchToken!(TokenType.Identifier)
+		))
+		.matchToken!(TokenType.CloseParenthese)
+		.matchStatementBlock;
+}
+/// MatchExpression = "match" "(" Expression ")" "{" (CaseClause | DefaultClause)* "}"
+public ParseResult matchMatchExpression(ParseResult input)
+{
+	return input.matchToken!(TokenType.Match)
+		.matchToken!(TokenType.OpenParenthese).matchExpression.matchToken!(TokenType.CloseParenthese)
+		.matchToken!(TokenType.OpenBrace)
+		.matchUntilFail!(select!(matchCaseClause, matchDefaultClause))
+		.matchToken!(TokenType.CloseBrace);
 }
 /// DefaultClause = "default" "=>" Statement
-public static class DefaultClause
+public ParseResult matchDefaultClause(ParseResult input)
 {
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.Default;
-	}
-	public static TokenList drops(TokenList input)
-	{
-		if(input.front.type != TokenType.Default) return input;
-		if(input.dropOne.front.type != TokenType.Equal_RightAngleBracket) return input;
-		return Statement.drops(input.drop(2));
-	}
-	public static TokenList parse(TokenList input)
-	{
-		return input.consumeToken!(TokenType.Default).consumeToken!(TokenType.Equal_RightAngleBracket)
-			.then!(a => Statement.parse(a));
-	}
+	return input.matchToken!(TokenType.Default).matchToken!(TokenType.Equal_RightAngleBracket).matchStatement;
 }
 /// CaseClause = ValueCaseClause | TypeMatchingCaseClause
-public static class CaseClause
+public ParseResult matchCaseClause(ParseResult input)
 {
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.Case;
-	}
-	public static TokenList drops(TokenList input)
-	{
-		if(input.take(3).map!(a => a.type).equal([TokenType.Case, TokenType.Identifier, TokenType.Colon]))
-		{
-			return TypeMatchingCaseClause.drops(input);
-		}
-		else return ValueCaseClause.drops(input);
-	}
-	public static TokenList parse(TokenList input)
-	{
-		if(input.take(3).map!(a => a.type).equal([TokenType.Case, TokenType.Identifier, TokenType.Colon]))
-		{
-			return TypeMatchingCaseClause.parse(input);
-		}
-		else return ValueCaseClause.parse(input);
-	}
+	return input.select!(matchValueCaseClause, matchTypeMatchingCaseClause);
 }
 /// ValueCaseClause = "case" ExpressionList "=>" Statement
-public static class ValueCaseClause
+public ParseResult matchValueCaseClause(ParseResult input)
 {
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.Case;
-	}
-	public static TokenList drops(TokenList input)
-	{
-		if(input.front.type != TokenType.Case) return input;
-		auto in2 = ExpressionList.drops(input.dropOne);
-		if(in2.front.type != TokenType.Equal_RightAngleBracket) return input;
-		return Statement.drops(in2.dropOne);
-	}
-	public static TokenList parse(TokenList input)
-	{
-		return input.consumeToken!(TokenType.Case)
-			.then!(a => ExpressionList.parse(a).consumeToken!(TokenType.Equal_RightAngleBracket))
-			.then!(Statement.parse);
-	}
+	return input.matchToken!(TokenType.Case).matchExpressionList
+		.matchToken!(TokenType.Equal_RightAngleBracket).matchStatement;
 }
 /// TypeMatchingCaseClause = "case" Identifier ":" Type ("," Identifier ":" Type)* "=>" Statement
-public static class TypeMatchingCaseClause
+public ParseResult matchTypeMatchingCaseClause(ParseResult input)
 {
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.Case;
-	}
-	public static TokenList drops(TokenList input)
-	{
-		if(input.front.type != TokenType.Case) return input;
-		if(input.dropOne.front.type != TokenType.Identifier) return input;
-		if(input.drop(2).front.type != TokenType.Colon) return input;
-		auto in2 = Type.drops(input.drop(3))
-			.thenLoop!(a => a.front.type == TokenType.Comma, (a)
-			{
-				if(a.dropOne.front.type != TokenType.Identifier) return a;
-				if(a.drop(2).front.type != TokenType.Colon) return a;
-				return Type.drops(a.drop(3));
-			});
-		if(in2.front.type != TokenType.Equal_RightAngleBracket) return input;
-		return Statement.drops(in2.dropOne);
-	}
-	public static TokenList parse(TokenList input)
-	{
-		return input.consumeToken!(TokenType.Case).consumeToken!(TokenType.Identifier).consumeToken!(TokenType.Colon)
-			.then!(Type.parse)
-			.thenLoop!(a => a.front.type == TokenType.Comma,
-				a => Type.parse(a.dropOne.consumeToken!(TokenType.Identifier).consumeToken!(TokenType.Colon)))
-			.then!(a => Statement.parse(a.consumeToken!(TokenType.Equal_RightAngleBracket)));
-	}
+	return input.matchToken!(TokenType.Case).matchToken!(TokenType.Identifier)
+		.matchToken!(TokenType.Colon).matchType.matchUntilFail!(
+			x => x.matchToken!(TokenType.Comma).matchToken!(TokenType.Identifier)
+				.matchToken!(TokenType.Colon).matchType
+		)
+		.matchToken!(TokenType.Equal_RightAngleBracket).matchStatement;
 }
-*/

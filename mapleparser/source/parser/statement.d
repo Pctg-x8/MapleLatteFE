@@ -7,6 +7,44 @@ import mlfe.mapleparser.parser.type;
 import mlfe.mapleparser.lexer.token;
 import std.algorithm, std.range;
 
+/// Statement = StatementBlock / Expression ";" / ";"
+public ParseResult matchStatement(ParseResult input)
+{
+	return input.select!(
+		x => x.matchStatementBlock,
+		x => x.matchExpression.matchToken!(TokenType.Semicolon),
+		matchToken!(TokenType.Semicolon)
+	);
+}
+
+/// StatementBlock = "{" (LocalVariableDeclarator | Statement)* "}"
+public ParseResult matchStatementBlock(ParseResult input)
+{
+	return input.matchToken!(TokenType.OpenBrace)
+		.matchUntilFail!(select!(
+			matchLocalVariableDeclarator, matchStatement
+		))
+		.matchToken!(TokenType.CloseBrace);
+}
+/// LocalVariableDeclarator = ("var" / "val" / "const" [InferableType] / InferableType) VariableDeclarator ("," VariableDeclarator)* ";"
+public ParseResult matchLocalVariableDeclarator(ParseResult input)
+{
+	return input.select!(
+		x => x.matchToken!(TokenType.Var),
+		x => x.matchToken!(TokenType.Val),
+		x => x.matchToken!(TokenType.Const).ignorable!matchInferableType,
+		x => x.matchInferableType
+	).matchVariableDeclarator.matchUntilFail!(
+		x => x.matchToken!(TokenType.Comma).matchVariableDeclarator
+	).matchToken!(TokenType.Semicolon);
+}
+/// VariableDeclarator = Identifier ["=" TriExpression]
+public ParseResult matchVariableDeclarator(ParseResult input)
+{
+	return input.matchToken!(TokenType.Identifier)
+		.ignorable!(x => x.matchToken!(TokenType.Equal).matchTriExpression);
+}
+
 /*
 /// Statement = IfStatement | WhileStatement | DoStatement | ForStatement | ForeachStatement
 ///	| NamedStatements | "break" [Identifier] ";" | "continue" [Identifier] ";" | "return" [Expression] ";"
@@ -124,129 +162,6 @@ public static class NamedStatements
 		case TokenType.Foreach: return ForeachStatement.parse(in2);
 		default: throw new ParseException("No match rules found", in2.front.at);
 		}
-	}
-}
-
-/// StatementBlock = "{" (LocalVariableDeclarator | Statement)* "}"
-public static class StatementBlock
-{
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.OpenBrace;
-	}
-	public static TokenList drops(TokenList input)
-	{
-		return input.thenIf!(a => a.front.type == TokenType.OpenBrace, dropOne)
-			.thenLoop!(a => a.front.type != TokenType.CloseBrace, (a)
-			{
-				if([TokenType.Var, TokenType.Val, TokenType.Const, TokenType.Auto].any!(b => a.front.type == b))
-				{
-					return LocalVariableDeclarator.parse(a);
-				}
-				auto vdd = InferableType.drops(a);
-				if(vdd.front.type == TokenType.Identifier) return LocalVariableDeclarator.drops(a);
-				return Statement.drops(a);
-			})
-			.thenIf!(a => a.front.type != TokenType.CloseBrace, dropOne);
-	}
-	public static TokenList parse(TokenList input)
-	{
-		static TokenList loop(TokenList input)
-		{
-			if(input.front.type == TokenType.CloseBrace) return input.dropOne;
-			
-			if([TokenType.Var, TokenType.Val, TokenType.Const, TokenType.Auto].any!(a => input.front.type == a))
-				return loop(LocalVariableDeclarator.parse(input));
-			auto vdd = InferableType.drops(input);
-			if(vdd.front.type == TokenType.Identifier)
-				return loop(LocalVariableDeclarator.parse(input));
-			
-			return loop(Statement.parse(input));
-		}
-		return loop(input.consumeToken!(TokenType.OpenBrace));
-	}
-}
-
-/// LocalVariableDeclarator = ("var" | "val" | "const" [InferableType] | InferableType) VariableDeclarator ("," VariableDeclarator)* ";"
-public static class LocalVariableDeclarator
-{
-	public static bool canParse(TokenList input)
-	{
-		return [TokenType.Var, TokenType.Val, TokenType.Const].any!(a => a == input.front.type)
-			|| InferableType.canParse(input);
-	}
-	public static TokenList drops(TokenList input)
-	{
-		return input.then!((a)
-		{
-			switch(a.front.type)
-			{
-			case TokenType.Var: case TokenType.Val:
-				return VariableDeclarator.drops(a.dropOne);
-			case TokenType.Const:
-			{
-				auto in2_vd = InferableType.drops(a.dropOne);
-				if(in2_vd.front.type == TokenType.Identifier)
-				{
-					return VariableDeclarator.drops(InferableType.drops(a.dropOne));
-				}
-				else return VariableDeclarator.drops(a.dropOne);
-			}
-			default:
-				return VariableDeclarator.drops(InferableType.drops(a));
-			}
-		})
-		.thenLoop!(a => a.front.type == TokenType.Comma, a => VariableDeclarator.drops(a.dropOne))
-		.thenIf!(a => a.front.type == TokenType.Semicolon, dropOne);
-	}
-	public static TokenList parse(TokenList input)
-	{
-		static TokenList loop(TokenList input)
-		{
-			return input.front.type == TokenType.Comma ? loop(VariableDeclarator.parse(input.dropOne)) : input;
-		}
-		
-		switch(input.front.type)
-		{
-		case TokenType.Var: case TokenType.Val:
-			return loop(VariableDeclarator.parse(input.dropOne)).consumeToken!(TokenType.Semicolon);
-		case TokenType.Const:
-		{
-			auto in2_vd = InferableType.drops(input.dropOne);
-			if(in2_vd.front.type == TokenType.Identifier)
-			{
-				return loop(VariableDeclarator.parse(InferableType.parse(input.dropOne))).consumeToken!(TokenType.Semicolon);
-			}
-			else
-			{
-				return loop(VariableDeclarator.parse(input.dropOne)).consumeToken!(TokenType.Semicolon);
-			}
-		}
-		default: return loop(VariableDeclarator.parse(InferableType.parse(input))).consumeToken!(TokenType.Semicolon);
-		}
-	}
-}
-/// VariableDeclarator = Identifier ["=" TriExpression]
-public static class VariableDeclarator
-{
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.Identifier;
-	}
-	public static TokenList drops(TokenList input)
-	{
-		if(input.front.type != TokenType.Identifier) return input;
-		if(input.dropOne.front.type == TokenType.Equal) return TriExpression.drops(input.drop(2));
-		else return input.dropOne;
-	}
-	public static TokenList parse(TokenList input)
-	{
-		auto in2 = input.consumeToken!(TokenType.Identifier);
-		if(in2.front.type == TokenType.Equal)
-		{
-			return TriExpression.parse(in2.dropOne);
-		}
-		else return in2;
 	}
 }
 
