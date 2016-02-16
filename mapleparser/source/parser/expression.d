@@ -7,7 +7,7 @@ import mlfe.mapleparser.parser.statement;
 import mlfe.mapleparser.parser.exceptions;
 import mlfe.mapleparser.lexer.token;
 import std.algorithm, std.range;
-
+/*
 /// Expression = TriExpression [AssignOps Expression]
 public static class Expression
 {
@@ -310,85 +310,65 @@ public static class PrimaryExpression
 		if(ComplexLiteral.canParse(input)) return ComplexLiteral.parse(input);
 		throw new ParseException("No match rules found", input.front.at);
 	}
+}*/
+
+/// Expression = PrimaryExpression
+public ParseResult matchExpression(ParseResult input)
+{
+	return input.matchPrimaryExpression;
+}
+/// ExpressionList = Expression ("," Expression)*
+public ParseResult matchExpressionList(ParseResult input)
+{
+	return input.matchExpression
+		.matchUntilFail!(x => x.matchToken!(TokenType.Comma).matchExpression);
+}
+
+/// PrimaryExpression = "(" Expression ")" / "[" [ExpressionList] "]" / Literal / SpecialLiteral
+public ParseResult matchPrimaryExpression(ParseResult input)
+{
+	return input.select!(
+		x => x.matchToken!(TokenType.OpenParenthese).matchExpression.matchToken!(TokenType.CloseParenthese),
+		x => x.matchToken!(TokenType.OpenBracket).ignorable!matchExpressionList.matchToken!(TokenType.CloseBracket),
+		x => x.matchLiteral,
+		x => x.matchSpecialLiteral
+	);
+}
+unittest
+{
+	import mlfe.mapleparser.lexer : asTokenList;
+	assert(Cont("123456".asTokenList).matchPrimaryExpression.succeeded);
+	assert(Cont("this".asTokenList).matchPrimaryExpression.succeeded);
+	assert(Cont("[]".asTokenList).matchPrimaryExpression.succeeded);
+	assert(Cont("[2, 3, 6]".asTokenList).matchPrimaryExpression.succeeded);
 }
 
 /// Literal(Set of Tokens) = [NumericLiteral] | [FloatLiteral] | [DoubleLiteral] | [StringLiteral] | [CharacterLiteral]
 ///			| [LongLiteral] | [UlongLiteral]
-public static class Literal
+public ParseResult matchLiteral(ParseResult input)
 {
-	public static bool canParse(TokenList input)
-	{
-		return [TokenType.NumericLiteral, TokenType.FloatLiteral, TokenType.DoubleLiteral,
-			TokenType.StringLiteral, TokenType.CharacterLiteral, TokenType.LongLiteral, TokenType.UlongLiteral]
-			.any!(a => a == input.front.type);
-	}
-	public static TokenList drops(TokenList input)
-	{
-		return canParse(input) ? input.dropOne : input;
-	}
-	public static TokenList parse(TokenList input)
-	{
-		switch(input.front.type)
-		{
-		case TokenType.NumericLiteral: return input.dropOne;
-		case TokenType.FloatLiteral: return input.dropOne;
-		case TokenType.DoubleLiteral: return input.dropOne;
-		case TokenType.StringLiteral: return input.dropOne;
-		case TokenType.CharacterLiteral: return input.dropOne;
-		case TokenType.LongLiteral: return input.dropOne;
-		case TokenType.UlongLiteral: return input.dropOne;
-		default: throw new ParseException("No match tokens found", input.front.at);
-		}
-	}
+	return input.matchType!(
+		TokenType.NumericLiteral, x => Cont(x.dropOne),
+		TokenType.FloatLiteral, x => Cont(x.dropOne),
+		TokenType.DoubleLiteral, x => Cont(x.dropOne),
+		TokenType.StringLiteral, x => Cont(x.dropOne),
+		TokenType.CharacterLiteral, x => Cont(x.dropOne),
+		TokenType.LongLiteral, x => Cont(x.dropOne),
+		TokenType.UlongLiteral, x => Cont(x.dropOne)
+	);
 }
-
 /// SpecialLiteral = "this" | "super" | "true" | "false"
-public static class SpecialLiteral
+public ParseResult matchSpecialLiteral(ParseResult input)
 {
-	public static bool canParse(TokenList input)
-	{
-		return [TokenType.This, TokenType.Super, TokenType.True, TokenType.False].any!(a => a == input.front.type);
-	}
-	public static TokenList drops(TokenList input)
-	{
-		return canParse(input) ? input.dropOne : input;
-	}
-	public static TokenList parse(TokenList input)
-	{
-		switch(input.front.type)
-		{
-		case TokenType.This: return input.dropOne;
-		case TokenType.Super: return input.dropOne;
-		case TokenType.True: return input.dropOne;
-		case TokenType.False: return input.dropOne;
-		default: throw new ParseException("No match tokens found", input.front.at);
-		}
-	}
+	return input.matchType!(
+		TokenType.This, x => Cont(x.dropOne),
+		TokenType.Super, x => Cont(x.dropOne),
+		TokenType.True, x => Cont(x.dropOne),
+		TokenType.False, x => Cont(x.dropOne)
+	);
 }
 
-/// ComplexLiteral = "[" [ExpressionList] "]"
-public static class ComplexLiteral
-{
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.OpenBracket;
-	}
-	public static TokenList drops(TokenList input)
-	{
-		if(input.front.type != TokenType.OpenBracket) return input;
-		if(input.dropOne.front.type == TokenType.CloseBracket) return input.drop(2);
-		auto in2 = ExpressionList.drops(input.dropOne);
-		if(in2.front.type != TokenType.CloseBracket) return input;
-		return in2.dropOne;
-	}
-	public static TokenList parse(TokenList input)
-	{
-		auto in2 = input.consumeToken!(TokenType.OpenBracket);
-		if(in2.front.type == TokenType.CloseBracket) return in2.dropOne;
-		else return ExpressionList.parse(in2).consumeToken!(TokenType.CloseBracket);
-	}
-}
-
+/*
 /// NewExpression = "new" Type ("[" [Expression] "]")* ["(" [ExpressionList] ")"]
 public static class NewExpression
 {
@@ -565,3 +545,4 @@ public static class TypeMatchingCaseClause
 			.then!(a => Statement.parse(a.consumeToken!(TokenType.Equal_RightAngleBracket)));
 	}
 }
+*/

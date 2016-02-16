@@ -9,42 +9,38 @@ import std.algorithm, std.range;
 
 /// BuiltinType(Set of tokens) = "void" | "char" | "uchar" | "byte" | "short" | "ushort" | "word"
 ///			| "int" | "uint" | "dword" | "long" | "ulong" | "qword" | "float" | "double"
-public static class BuiltinType
+public ParseResult matchBuiltinType(ParseResult input)
 {
-	public static bool canParse(TokenList input)
-	{
-		return [TokenType.Void, TokenType.Char, TokenType.Uchar, TokenType.Byte,
-			TokenType.Short, TokenType.Ushort, TokenType.Word, TokenType.Int, TokenType.Uint, TokenType.Dword,
-			TokenType.Long, TokenType.Ulong, TokenType.Qword, TokenType.Float, TokenType.Double]
-			.any!(a => a == input.front.type);
-	}
-	public static TokenList drops(TokenList input)
-	{
-		return canParse(input) ? input.dropOne : input;
-	}
-	public static TokenList parse(TokenList input)
-	{
-		switch(input.front.type)
-		{
-		case TokenType.Void: return input.dropOne;
-		case TokenType.Char: return input.dropOne;
-		case TokenType.Uchar: return input.dropOne;
-		case TokenType.Byte: return input.dropOne;
-		case TokenType.Short: return input.dropOne;
-		case TokenType.Ushort: return input.dropOne;
-		case TokenType.Word: return input.dropOne;
-		case TokenType.Int: return input.dropOne;
-		case TokenType.Uint: return input.dropOne;
-		case TokenType.Dword: return input.dropOne;
-		case TokenType.Long: return input.dropOne;
-		case TokenType.Ulong: return input.dropOne;
-		case TokenType.Qword: return input.dropOne;
-		case TokenType.Float: return input.dropOne;
-		case TokenType.Double: return input.dropOne;
-		default: throw new ParseException("No match tokens found", input.front.at);
-		}
-	}
+	return input.matchType!(
+		TokenType.Void, x => Cont(x.dropOne),
+		TokenType.Char, x => Cont(x.dropOne),
+		TokenType.Uchar, x => Cont(x.dropOne),
+		TokenType.Byte, x => Cont(x.dropOne),
+		TokenType.Short, x => Cont(x.dropOne),
+		TokenType.Ushort, x => Cont(x.dropOne),
+		TokenType.Word, x => Cont(x.dropOne),
+		TokenType.Int, x => Cont(x.dropOne),
+		TokenType.Uint, x => Cont(x.dropOne),
+		TokenType.Dword, x => Cont(x.dropOne),
+		TokenType.Long, x => Cont(x.dropOne),
+		TokenType.Ulong, x => Cont(x.dropOne),
+		TokenType.Qword, x => Cont(x.dropOne),
+		TokenType.Float, x => Cont(x.dropOne),
+		TokenType.Double, x => Cont(x.dropOne)
+	);
 }
+/// BasicType = BuiltinType
+public ParseResult matchBasicType(ParseResult input)
+{
+	return input.matchBuiltinType;
+}
+unittest
+{
+	import mlfe.mapleparser.lexer : asTokenList;
+	assert(Cont("float".asTokenList).matchBasicType.succeeded);
+}
+
+/*
 
 /// BasicType = BuiltinType
 ///	| TemplateInstance ("." TemplateInstance)*
@@ -240,3 +236,4 @@ public static class InferableType
 		return loop(InferableConstructableType.parse(input));
 	}
 }
+*/

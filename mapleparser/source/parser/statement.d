@@ -7,6 +7,7 @@ import mlfe.mapleparser.parser.type;
 import mlfe.mapleparser.lexer.token;
 import std.algorithm, std.range;
 
+/*
 /// Statement = IfStatement | WhileStatement | DoStatement | ForStatement | ForeachStatement
 ///	| NamedStatements | "break" [Identifier] ";" | "continue" [Identifier] ";" | "return" [Expression] ";"
 /// | "throw" Expression ";" | TryStatement
@@ -488,3 +489,4 @@ public static class FinallyClause
 		return Statement.parse(input.consumeToken!(TokenType.Finally));
 	}
 }
+*/

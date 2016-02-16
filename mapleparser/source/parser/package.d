@@ -7,7 +7,7 @@ import mlfe.mapleparser.lexer;
 import std.container, std.range;
 
 /// Generates Abstract Syntax Tree from TokenList
-void asSyntaxTree(TokenList input)
+/*void asSyntaxTree(TokenList input)
 {
 	if(input.front.type == TokenType.EndOfScript) return; // empty input
 	scope auto rest = Statement.parse(input);
@@ -20,12 +20,12 @@ private auto asTestCase(bool ThrownException = false)(string testcase)
 	
 	static if(ThrownException) assertThrown!ParseException(testcase.asTokenList.asSyntaxTree);
 	else assertNotThrown!ParseException(testcase.asTokenList.asSyntaxTree);
-}
+}*/
 
 unittest
 {
-	"123456;".asTestCase;
-	"\"test\";".asTestCase;
+	//"123456;".asTestCase;
+	/*"\"test\";".asTestCase;
 	"this;".asTestCase;
 	"super.this;".asTestCase!true;
 	"(122 );".asTestCase;
@@ -73,5 +73,5 @@ unittest
 	"switch(a){ case 2, 3 => true; case 4 => false; default => assert(false); };".asTestCase;
 	"switch(b) { case _ : int => true; default => false; };".asTestCase;
 	"throw new RuntimeError(\"a\");".asTestCase;
-	"return switch(b) { case a : int => a; default => 0; };".asTestCase;
+	"return switch(b) { case a : int => a; default => 0; };".asTestCase;*/
 }

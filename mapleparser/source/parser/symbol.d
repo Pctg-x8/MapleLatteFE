@@ -7,6 +7,7 @@ import mlfe.mapleparser.parser.type;
 import mlfe.mapleparser.lexer.token;
 import std.algorithm, std.range;
 
+/*
 /// TemplateInstance = Identifier ["#" (SingleTemplateParameter | "(" TemplateParameterList ")")]
 public static class TemplateInstance
 {
@@ -100,3 +101,4 @@ public static class SingleTemplateParameter
 		throw new ParseException("No match rules found", input.front.at);
 	}
 }
+*/
