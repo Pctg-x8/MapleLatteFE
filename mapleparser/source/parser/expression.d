@@ -41,7 +41,7 @@ unittest
 	assert(Cont("fun2 = (x, y) { val a = x + y; }".asTokenList).matchExpression.succeeded);
 	assert(Cont("v = ((x, y) => x * y)(2, 3)".asTokenList).matchExpression.succeeded);
 	assert(Cont("v = match(a) { case x => x + v => y => y + 2; default => x => 0; }".asTokenList)
-		.matchExpression.tail.front.type != TokenType.EndOfScript);
+		.matchExpression.tail.front.type == TokenType.EndOfScript);
 }
 
 /// AssignOps(Set of tokens) = "=" | "+=" | "-=" | "*=" | "/=" | "%="
@@ -239,10 +239,10 @@ public ParseResult matchCaseClause(ParseResult input)
 {
 	return input.select!(matchValueCaseClause, matchTypeMatchingCaseClause);
 }
-/// ValueCaseClause = "case" ExpressionList "=>" Expression ";"
+/// ValueCaseClause = "case" (Identifier / ExpressionList) "=>" Expression ";"
 public ParseResult matchValueCaseClause(ParseResult input)
 {
-	return input.matchToken!(TokenType.Case).matchExpressionList
+	return input.matchToken!(TokenType.Case).select!(matchToken!(TokenType.Identifier), matchExpressionList)
 		.matchToken!(TokenType.Equal_RightAngleBracket).matchExpression.matchToken!(TokenType.Semicolon);
 }
 /// TypeMatchingCaseClause = "case" Identifier ":" Type ("," Identifier ":" Type)* "=>" Expression ";"
