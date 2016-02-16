@@ -317,6 +317,16 @@ public ParseResult matchExpression(ParseResult input)
 {
 	return input.matchPrimaryExpression;
 }
+unittest
+{
+	import mlfe.mapleparser.lexer : asTokenList;
+	assert(Cont("123456".asTokenList).matchExpression.succeeded);
+	assert(Cont("this".asTokenList).matchExpression.succeeded);
+	assert(Cont("[]".asTokenList).matchExpression.succeeded);
+	assert(Cont("[2, 3, 6]".asTokenList).matchExpression.succeeded);
+	assert(Cont("new TypeTrait#float()".asTokenList).matchExpression.succeeded);
+}
+
 /// ExpressionList = Expression ("," Expression)*
 public ParseResult matchExpressionList(ParseResult input)
 {
@@ -324,23 +334,16 @@ public ParseResult matchExpressionList(ParseResult input)
 		.matchUntilFail!(x => x.matchToken!(TokenType.Comma).matchExpression);
 }
 
-/// PrimaryExpression = "(" Expression ")" / "[" [ExpressionList] "]" / Literal / SpecialLiteral
+/// PrimaryExpression = "(" Expression ")" / "[" [ExpressionList] "]" / NewExpression / Literal / SpecialLiteral
 public ParseResult matchPrimaryExpression(ParseResult input)
 {
 	return input.select!(
 		x => x.matchToken!(TokenType.OpenParenthese).matchExpression.matchToken!(TokenType.CloseParenthese),
 		x => x.matchToken!(TokenType.OpenBracket).ignorable!matchExpressionList.matchToken!(TokenType.CloseBracket),
+		x => x.matchNewExpression,
 		x => x.matchLiteral,
 		x => x.matchSpecialLiteral
 	);
-}
-unittest
-{
-	import mlfe.mapleparser.lexer : asTokenList;
-	assert(Cont("123456".asTokenList).matchPrimaryExpression.succeeded);
-	assert(Cont("this".asTokenList).matchPrimaryExpression.succeeded);
-	assert(Cont("[]".asTokenList).matchPrimaryExpression.succeeded);
-	assert(Cont("[2, 3, 6]".asTokenList).matchPrimaryExpression.succeeded);
 }
 
 /// Literal(Set of Tokens) = [NumericLiteral] | [FloatLiteral] | [DoubleLiteral] | [StringLiteral] | [CharacterLiteral]
@@ -368,54 +371,17 @@ public ParseResult matchSpecialLiteral(ParseResult input)
 	);
 }
 
-/*
 /// NewExpression = "new" Type ("[" [Expression] "]")* ["(" [ExpressionList] ")"]
-public static class NewExpression
+public ParseResult matchNewExpression(ParseResult input)
 {
-	public static bool canParse(TokenList input)
-	{
-		return input.front.type == TokenType.New;
-	}
-	public static TokenList drops(TokenList input)
-	{
-		if(input.front.type != TokenType.New) return input;
-		return Type.drops(input.dropOne)
-			.thenLoop!(a => a.front.type == TokenType.OpenBracket, (a)
-			{
-				if(a.dropOne.front.type == TokenType.CloseBracket) return a.drop(2);
-				else
-				{
-					return Expression.drops(a.dropOne)
-						.then!(b => b.front.type == TokenType.CloseBracket ? b.dropOne : a);
-				}
-			})
-			.thenIf!(a => a.front.type == TokenType.OpenParenthese, (a)
-			{
-				return a.dropOne.front.type == TokenType.CloseParenthese
-					? a.drop(2)
-					: ExpressionList.drops(a.dropOne)
-						.then!(b => b.front.type == TokenType.CloseParenthese ? b.dropOne : a);
-			});
-	}
-	public static TokenList parse(TokenList input)
-	{
-		return input.consumeToken!(TokenType.New)
-			.then!(Type.parse)
-			.thenLoop!(a => a.front.type == TokenType.OpenBracket, (a)
-			{
-				return a.dropOne.front.type == TokenType.CloseBracket
-					? a.drop(2)
-					: Expression.parse(a.dropOne).consumeToken!(TokenType.CloseBracket);
-			})
-			.thenIf!(a => a.front.type == TokenType.OpenParenthese, (a)
-			{
-				return a.dropOne.front.type == TokenType.CloseParenthese
-					? a.drop(2)
-					: ExpressionList.parse(a.dropOne).consumeToken!(TokenType.CloseParenthese);
-			});
-	}
+	return input.matchToken!(TokenType.New).matchType
+		.matchUntilFail!(x => x.matchToken!(TokenType.OpenBracket)
+			.ignorable!matchExpression.matchToken!(TokenType.CloseBracket))
+		.ignorable!(x => x.matchToken!(TokenType.OpenParenthese)
+			.ignorable!matchExpressionList.matchToken!(TokenType.CloseParenthese));
 }
 
+/*
 /// SwitchExpression = "switch" "(" Expression ")" "{" (CaseClause | DefaultClause)* "}"
 public static class SwitchExpression
 {
