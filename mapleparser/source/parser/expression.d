@@ -347,7 +347,7 @@ unittest
 ///			| [LongLiteral] | [UlongLiteral]
 public ParseResult matchLiteral(ParseResult input)
 {
-	return input.matchType!(
+	return input.selectByType!(
 		TokenType.NumericLiteral, x => Cont(x.dropOne),
 		TokenType.FloatLiteral, x => Cont(x.dropOne),
 		TokenType.DoubleLiteral, x => Cont(x.dropOne),
@@ -360,7 +360,7 @@ public ParseResult matchLiteral(ParseResult input)
 /// SpecialLiteral = "this" | "super" | "true" | "false"
 public ParseResult matchSpecialLiteral(ParseResult input)
 {
-	return input.matchType!(
+	return input.selectByType!(
 		TokenType.This, x => Cont(x.dropOne),
 		TokenType.Super, x => Cont(x.dropOne),
 		TokenType.True, x => Cont(x.dropOne),

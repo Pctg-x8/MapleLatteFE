@@ -56,7 +56,7 @@ ParseResult then(alias Fun)(ParseResult input)
 }
 
 /// Try matching any of types
-ParseResult matchType(Expressions...)(ParseResult input)
+ParseResult selectByType(Expressions...)(ParseResult input)
 {
 	if(!input.succeeded) return input;
 	

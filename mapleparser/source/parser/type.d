@@ -11,7 +11,7 @@ import std.algorithm, std.range;
 ///			| "int" | "uint" | "dword" | "long" | "ulong" | "qword" | "float" | "double"
 public ParseResult matchBuiltinType(ParseResult input)
 {
-	return input.matchType!(
+	return input.selectByType!(
 		TokenType.Void, x => Cont(x.dropOne),
 		TokenType.Char, x => Cont(x.dropOne),
 		TokenType.Uchar, x => Cont(x.dropOne),
@@ -34,10 +34,29 @@ public ParseResult matchBasicType(ParseResult input)
 {
 	return input.matchBuiltinType;
 }
+
+/// ConstructableType = "const" "(" Type ")" / "(" Type ")" / BasicType
+public ParseResult matchConstructableType(ParseResult input)
+{
+	return input.select!(
+		x => x.matchToken!(TokenType.Const).matchToken!(TokenType.OpenParenthese)
+			.matchType.matchToken!(TokenType.CloseParenthese),
+		x => x.matchToken!(TokenType.OpenParenthese).matchType.matchToken!(TokenType.CloseParenthese),
+		x => x.matchBasicType
+	);
+}
+/// Type = ConstructableType ("[" [Expression] "]")*
+public ParseResult matchType(ParseResult input)
+{
+	return input.matchConstructableType
+		.matchUntilFail!(x => x.matchToken!(TokenType.OpenBracket).ignorable!matchExpression
+			.matchToken!(TokenType.CloseBracket));
+}
 unittest
 {
 	import mlfe.mapleparser.lexer : asTokenList;
-	assert(Cont("float".asTokenList).matchBasicType.succeeded);
+	assert(Cont("float".asTokenList).matchType.succeeded);
+	assert(Cont("const(char)[]".asTokenList).matchType.succeeded);
 }
 
 /*
