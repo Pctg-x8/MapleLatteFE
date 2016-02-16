@@ -312,10 +312,10 @@ public static class PrimaryExpression
 	}
 }*/
 
-/// Expression = PrimaryExpression
+/// Expression = PrefixExpression
 public ParseResult matchExpression(ParseResult input)
 {
-	return input.matchPrimaryExpression;
+	return input.matchPrefixExpression;
 }
 unittest
 {
@@ -325,6 +325,9 @@ unittest
 	assert(Cont("[]".asTokenList).matchExpression.succeeded);
 	assert(Cont("[2, 3, 6]".asTokenList).matchExpression.succeeded);
 	assert(Cont("new TypeTrait#float()".asTokenList).matchExpression.succeeded);
+	assert(Cont("++x.counter".asTokenList).matchExpression.succeeded);
+	assert(Cont("-+x.counter--**.getValue()".asTokenList).matchExpression.succeeded);
+	assert(Cont("data.element->double".asTokenList).matchExpression.succeeded);
 }
 
 /// ExpressionList = Expression ("," Expression)*
@@ -334,13 +337,45 @@ public ParseResult matchExpressionList(ParseResult input)
 		.matchUntilFail!(x => x.matchToken!(TokenType.Comma).matchExpression);
 }
 
-/// PrimaryExpression = "(" Expression ")" / "[" [ExpressionList] "]" / NewExpression / Literal / SpecialLiteral
+/// PrefixExpression = "++" PrefixExpression / "--" PrefixExpression / "**" PrefixExpression
+///		/ "+" PrefixExpression / "-" PrefixExpression / PostfixExpression
+public ParseResult matchPrefixExpression(ParseResult input)
+{
+	return input.select!(
+		x => x.matchToken!(TokenType.Plus2).matchPrefixExpression,
+		x => x.matchToken!(TokenType.Minus2).matchPrefixExpression,
+		x => x.matchToken!(TokenType.Asterisk2).matchPrefixExpression,
+		x => x.matchToken!(TokenType.Plus).matchPrefixExpression,
+		x => x.matchToken!(TokenType.Minus).matchPrefixExpression,
+		matchPostfixExpression
+	);
+}
+/// PostfixExpression = PrimaryExpression ("++" / "--" / "**"
+///		/ "(" [ExpressionList] ")" / "[" Expression "]" / "." TemplateInstance
+///		/ "->" Type)*
+public ParseResult matchPostfixExpression(ParseResult input)
+{
+	return input.matchPrimaryExpression.matchUntilFail!(select!(
+		matchToken!(TokenType.Plus2),
+		matchToken!(TokenType.Minus2),
+		matchToken!(TokenType.Asterisk2),
+		x => x.matchToken!(TokenType.OpenParenthese).ignorable!matchExpressionList.matchToken!(TokenType.CloseParenthese),
+		x => x.matchToken!(TokenType.OpenBracket).matchExpression.matchToken!(TokenType.CloseBracket),
+		x => x.matchToken!(TokenType.Period).matchTemplateInstance,
+		x => x.matchToken!(TokenType.Minus_RightAngleBracket).matchType
+	));
+}
+/// PrimaryExpression = "(" Expression ")" / "[" [ExpressionList] "]" / NewExpression
+///		/ TemplateInstance / "." TemplateInstance / "global" "." TemplateInstance" / Literal / SpecialLiteral
 public ParseResult matchPrimaryExpression(ParseResult input)
 {
 	return input.select!(
 		x => x.matchToken!(TokenType.OpenParenthese).matchExpression.matchToken!(TokenType.CloseParenthese),
 		x => x.matchToken!(TokenType.OpenBracket).ignorable!matchExpressionList.matchToken!(TokenType.CloseBracket),
 		x => x.matchNewExpression,
+		x => x.matchTemplateInstance,
+		x => x.matchToken!(TokenType.Period).matchTemplateInstance,
+		x => x.matchToken!(TokenType.Global).matchToken!(TokenType.Period).matchTemplateInstance,
 		x => x.matchLiteral,
 		x => x.matchSpecialLiteral
 	);
