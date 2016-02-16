@@ -21,13 +21,13 @@ struct SourceObject
 	
 	/+ utils +/
 	/// Drop one character and perform action to location by character
-	auto followOne() immutable
+	auto followOne() immutable pure
 	{
 		return SourceObject(range.dropOne, current.follow(range.front, tabSpace), tabSpace);
 	}
 	/// Drop any characters and forwarding location
-	auto forward(size_t count = 1) immutable
+	auto forward(size_t count = 1) immutable pure
 	{
-		return SourceObject(range.drop(count), current.forward(count), tabSpace);
+		return immutable SourceObject(range.drop(count), current.forward(count), tabSpace);
 	}
 }

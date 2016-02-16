@@ -13,9 +13,9 @@ auto parseToken1(immutable SourceObject input)
 {
 	alias ReturnValue = Tuple!(SourceObject, Token);
 	
-	auto src2 = input.skipSpaces.skipComments;
+	immutable src2 = input.skipSpaces.skipComments;
 	if(src2.range.empty) return ReturnValue(src2, Token(src2.current, TokenType.EndOfScript, ""));
-	auto ret = src2.getToken;
+	immutable ret = src2.getToken;
 	return ReturnValue(ret.rest, ret.token);
 }
 
@@ -28,8 +28,7 @@ unittest
 	import std.algorithm : equal, map;
 	
 	assert(isInputRange!TokenList);
-	assert(TokenList(SourceObject("testにゃー", Location.init)).take(2).map!(a => a.type)
-		.equal([TokenType.Identifier, TokenType.EndOfScript]));
+	assert(TokenList("testにゃー").take(2).map!(a => a.type).equal([TokenType.Identifier, TokenType.EndOfScript]));
 	assert("/* blocked */\n\t	 // commend\n// comment with eof".asTokenList.front.type == TokenType.EndOfScript);
 	assert("/* blocked */++->**/**/%=% =#".asTokenList.take(8).map!(a => a.type).equal([TokenType.Plus2, 
 		TokenType.Minus_RightAngleBracket, TokenType.Asterisk2, TokenType.Percent_Equal, TokenType.Percent,

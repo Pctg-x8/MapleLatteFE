@@ -22,7 +22,7 @@ public static class Expression
 		auto in2_tx = TriExpression.parse(input);
 		if(AssignOps.canParse(in2_tx))
 		{
-			return Expression.parse(AssignOps.parse(in2_tx));
+			return in2_tx.then!(AssignOps.parse).then!(Expression.parse);
 		}
 		else return in2_tx;
 	}
@@ -297,7 +297,7 @@ public static class PrimaryExpression
 	{
 		switch(input.front.type)
 		{
-		case TokenType.OpenParenthese: return Expression.parse(input.dropOne).consumeToken!(TokenType.CloseParenthese);
+		case TokenType.OpenParenthese: return input.dropOne.then!(Expression.parse).consumeToken!(TokenType.CloseParenthese);
 		case TokenType.Period: return TemplateInstance.parse(input.dropOne);
 		case TokenType.Global: return TemplateInstance.parse(input.dropOne.consumeToken!(TokenType.Period));
 		case TokenType.New: return NewExpression.parse(input);

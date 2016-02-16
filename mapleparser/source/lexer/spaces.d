@@ -25,8 +25,8 @@ auto skipComments(immutable SourceObject src)
 	{
 		switch(x.range[0 .. 2])
 		{
-		case "//": return x.skipLineComment;
-		case "/*": return x.skipBlockedComment;
+		case "//": return x.skipLineComment.skipSpaces;
+		case "/*": return x.skipBlockedComment.skipSpaces;
 		default: assert(false);
 		}
 	});
@@ -34,12 +34,12 @@ auto skipComments(immutable SourceObject src)
 /// Skip line commments
 auto skipLineComment(immutable SourceObject src)
 {
-	return src.forward(2).thenLoop!(x => x.range.empty || !x.range.front.isLineBreaker, x => x.followOne);
+	return src.forward(2).thenLoop!(x => !x.range.empty && !x.range.front.isLineBreaker, x => x.followOne);
 }
 /// Skip blocked comments
 auto skipBlockedComment(immutable SourceObject src)
 {
-	return src.forward(2).thenLoop!(x => x.range.count >= 2 || x.range[0 .. 2] != "*/", x => x.followOne)
+	return src.forward(2).thenLoop!(x => x.range.count >= 2 && x.range[0 .. 2] != "*/", x => x.followOne)
 		.then!((x)
 		{
 			if(x.range.count < 2 || x.range[0 .. 2] == "*/") return x.forward(2);

@@ -104,7 +104,7 @@ public struct TokenList
 	/// Construct from source
 	public this(immutable string source, uint tabSpace = 4)
 	{
-		this.sourceRest = source;
+		this.sourceRest = source.idup;
 		this.locationRest = Location(1, 1);
 		this.parsedTokens = null;
 		this.currentPointer = 0;
@@ -116,12 +116,14 @@ public struct TokenList
 	/// Range Primitive: Front element
 	public @property Token front()
 	{
+		if(this.parsedTokens.length > this.currentPointer) return this.parsedTokens[this.currentPointer];
+		
+		if(this.sourceRest.empty) return Token(this.locationRest, TokenType.EndOfScript, "");
 		while(this.parsedTokens.length <= this.currentPointer)
 		{
-			if(this.sourceRest.empty) break;
+			if(this.sourceRest.empty) return Token(this.locationRest, TokenType.EndOfScript, "");
 			this.addToken();
 		}
-		if(this.sourceRest.empty) return new Token(this.locationRest, TokenType.EndOfScript, "");
 		return this.parsedTokens[this.currentPointer];
 	}
 	/// Range Primitive: popFront
@@ -133,6 +135,7 @@ public struct TokenList
 	private void addToken()
 	{
 		auto values = SourceObject(this.sourceRest, this.locationRest, this.tabSpace).parseToken1;
+		import std.stdio : writeln;
 		this.sourceRest = values[0].range;
 		this.locationRest = values[0].current;
 		this.parsedTokens ~= values[1];

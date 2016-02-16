@@ -26,3 +26,17 @@ TokenList then(alias Fun)(TokenList input)
 {
 	return Fun(input);
 }
+/// Debug the next token
+TokenList dbg(TokenList input)
+{
+	import std.stdio : writeln;
+	input.front.type.writeln("  **DEBUGGED**");
+	return input;
+}
+/// Debug the next token with name
+TokenList dbg(TokenList input, string name)
+{
+	import std.stdio : writeln;
+	input.front.type.writeln("  **DEBUGGED FROM ", name, "**");
+	return input;
+}

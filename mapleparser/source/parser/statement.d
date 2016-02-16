@@ -88,7 +88,7 @@ public static class Statement
 		case TokenType.OpenBrace: return StatementBlock.parse(input);
 		case TokenType.Semicolon: return input.dropOne;
 		default:
-			return Expression.parse(input).consumeToken!(TokenType.Semicolon);
+			return input.then!(Expression.parse).consumeToken!(TokenType.Semicolon);
 		}
 	}
 }

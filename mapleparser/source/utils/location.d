@@ -49,6 +49,6 @@ unittest
 {
 	assert(Location(3, 3).dup == Location(3, 3));
 	assert(Location(3, 3).toString == "3:3");
-	assert(Location(3, 1).follow('\t', 4) == Location(3, 5));
-	assert(Location(3, 2).follow('\t', 4) == Location(3, 5));
+	assert((immutable Location(3, 1)).follow('\t', 4) == Location(3, 5));
+	assert((immutable Location(3, 2)).follow('\t', 4) == Location(3, 5));
 }
