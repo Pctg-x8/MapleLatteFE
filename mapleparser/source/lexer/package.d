@@ -20,7 +20,7 @@ auto parseToken1(immutable SourceObject input)
 }
 
 /// Data constructor for single string parsing
-TokenList asTokenList(string input) { return TokenList(SourceObject(input, Location.init)); }
+TokenList asTokenList(immutable string input, uint tabSpaces = 4) { return TokenList(input, tabSpaces); }
 
 unittest
 {

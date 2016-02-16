@@ -92,18 +92,23 @@ unittest
 /// List of token(Infinite lazy list)
 public struct TokenList
 {
-	private SourceObject rest_source;
-	private bool has_stock = false;
-	private Token current_stock;
-	private SourceObject rest_next;
+	private string sourceRest;
+	private Location locationRest;
+	private Token[] parsedTokens;
+	private size_t currentPointer;
 	
-	private @property pointer_at() { return this.rest_source.current; }
+	// Editor Settings //
+	/// Spaces of tab(Default is 4)
+	private uint tabSpace = 4;
 	
 	/// Construct from source
-	public this(SourceObject from)
+	public this(immutable string source, uint tabSpace = 4)
 	{
-		this.rest_source = from;
-		this.has_stock = false;
+		this.sourceRest = source;
+		this.locationRest = Location(1, 1);
+		this.parsedTokens = null;
+		this.currentPointer = 0;
+		this.tabSpace = tabSpace;
 	}
 	
 	/// Range Primitive: Returns true if range is empty(always false)
@@ -111,25 +116,26 @@ public struct TokenList
 	/// Range Primitive: Front element
 	public @property Token front()
 	{
-		if(this.rest_source.range.empty) return Token(this.pointer_at, TokenType.EndOfScript, "");
-		if(!this.has_stock) this.parseToken();
-		return this.current_stock;
+		while(this.parsedTokens.length <= this.currentPointer)
+		{
+			if(this.sourceRest.empty) break;
+			this.addToken();
+		}
+		if(this.sourceRest.empty) return new Token(this.locationRest, TokenType.EndOfScript, "");
+		return this.parsedTokens[this.currentPointer];
 	}
 	/// Range Primitive: popFront
 	public void popFront()
 	{
-		if(this.rest_source.range.empty) return;
-		if(!this.has_stock) this.parseToken();
-		this.rest_source = this.rest_next;
-		this.has_stock = false;
+		this.currentPointer++;
 	}
 	
-	private void parseToken()
+	private void addToken()
 	{
-		auto values = this.rest_source.parseToken1();
-		this.rest_next = values[0];
-		this.current_stock = values[1];
-		this.has_stock = true;
+		auto values = SourceObject(this.sourceRest, this.locationRest, this.tabSpace).parseToken1;
+		this.sourceRest = values[0].range;
+		this.locationRest = values[0].current;
+		this.parsedTokens ~= values[1];
 	}
 }
 

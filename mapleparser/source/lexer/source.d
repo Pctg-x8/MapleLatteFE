@@ -3,14 +3,6 @@ module mlfe.mapleparser.lexer.source;
 import mlfe.mapleparser.utils.location;
 import std.range;
 
-/// Count of spaces of tab character(Default is 4)
-__gshared uint tabSpace = 4;
-/// Overrides global configures(Configuration is shared by threads.)
-public void overrideGlobalConfigure(uint tabSpace = 4)
-{
-	.tabSpace = tabSpace;
-}
-
 /// Pair of Range and Location
 struct SourceObject
 {
@@ -18,22 +10,24 @@ struct SourceObject
 	string range;
 	/// Location pointed in source
 	Location current;
+	/// Spaces of tab
+	uint tabSpace;
 	
 	/// Duplicate the object
 	public SourceObject dup() immutable pure
 	{
-		return SourceObject(range.dup, current.dup);
+		return SourceObject(range.dup, current.dup, tabSpace);
 	}
-}
-
-/+ utils +/
-/// Drop one character and perform action to location by character
-auto followOne(immutable SourceObject src)
-{
-	return SourceObject(src.range.dropOne, src.current.follow(src.range.front, tabSpace));
-}
-/// Drop any characters and forwarding location
-auto forward(immutable SourceObject src, size_t count) pure
-{
-	return SourceObject(src.range.drop(count), mlfe.mapleparser.utils.location.forward(src.current, count));
+	
+	/+ utils +/
+	/// Drop one character and perform action to location by character
+	auto followOne() immutable
+	{
+		return SourceObject(range.dropOne, current.follow(range.front, tabSpace), tabSpace);
+	}
+	/// Drop any characters and forwarding location
+	auto forward(size_t count = 1) immutable
+	{
+		return SourceObject(range.drop(count), current.forward(count), tabSpace);
+	}
 }

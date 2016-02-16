@@ -21,21 +21,21 @@ auto getToken(immutable SourceObject src)
 {
 	if(src.range.count >= 3)
 	{
-		auto Value3(TokenType TP) pure
+		auto Value3(TokenType TP)() pure
 		{
 			return Get_TokenResult(Token(src.current, TP, src.range[0 .. 3]), src.forward(3));
 		}
 		
 		switch(src.range[0 .. 3])
 		{
-		case "<<=": return Value3(TokenType.LeftAngleBracket2_Equal);
-		case ">>=": return Value3(TokenType.RightAngleBracket2_Equal);
+		case "<<=": return Value3!(TokenType.LeftAngleBracket2_Equal);
+		case ">>=": return Value3!(TokenType.RightAngleBracket2_Equal);
 		default: break;
 		}
 	}
 	if(src.range.count >= 2)
 	{
-		auto Value2(TokenType TP) pure
+		auto Value2(TokenType TP)() pure
 		{
 			return Get_TokenResult(Token(src.current, TP, src.range[0 .. 2]), src.forward(2));
 		}
@@ -43,68 +43,71 @@ auto getToken(immutable SourceObject src)
 		switch(src.range[0 .. 2])
 		{
 		case "0x": return parseHexadecimalLiteral(src);
-		case "++": return Value2(TokenType.Plus2);
-		case "--": return Value2(TokenType.Minus2);
-		case "**": return Value2(TokenType.Asterisk2);
-		case "<<": return Value2(TokenType.LeftAngleBracket2);
-		case ">>": return Value2(TokenType.RightAngleBracket2);
-		case "&&": return Value2(TokenType.Ampasand2);
-		case "||": return Value2(TokenType.VerticalLine2);
-		case "==": return Value2(TokenType.Equal2);
-		case "+=": return Value2(TokenType.Plus_Equal);
-		case "-=": return Value2(TokenType.Minus_Equal);
-		case "*=": return Value2(TokenType.Asterisk_Equal);
-		case "/=": return Value2(TokenType.Slash_Equal);
-		case "%=": return Value2(TokenType.Percent_Equal);
-		case "&=": return Value2(TokenType.Ampasand_Equal);
-		case "|=": return Value2(TokenType.VerticalLine_Equal);
-		case "^=": return Value2(TokenType.Accent_Equal);
-		case "<=": return Value2(TokenType.LeftAngleBracket_Equal);
-		case ">=": return Value2(TokenType.RightAngleBracket_Equal);
-		case "!=": return Value2(TokenType.Exclamation_Equal);
-		case "<>": return Value2(TokenType.Exclamation_Equal);
-		case "->": return Value2(TokenType.Minus_RightAngleBracket);
-		case "<-": return Value2(TokenType.LeftAngleBracket_Minus);
-		case "=>": return Value2(TokenType.Equal_RightAngleBracket);
+		case "++": return Value2!(TokenType.Plus2);
+		case "--": return Value2!(TokenType.Minus2);
+		case "**": return Value2!(TokenType.Asterisk2);
+		case "<<": return Value2!(TokenType.LeftAngleBracket2);
+		case ">>": return Value2!(TokenType.RightAngleBracket2);
+		case "&&": return Value2!(TokenType.Ampasand2);
+		case "||": return Value2!(TokenType.VerticalLine2);
+		case "==": return Value2!(TokenType.Equal2);
+		case "+=": return Value2!(TokenType.Plus_Equal);
+		case "-=": return Value2!(TokenType.Minus_Equal);
+		case "*=": return Value2!(TokenType.Asterisk_Equal);
+		case "/=": return Value2!(TokenType.Slash_Equal);
+		case "%=": return Value2!(TokenType.Percent_Equal);
+		case "&=": return Value2!(TokenType.Ampasand_Equal);
+		case "|=": return Value2!(TokenType.VerticalLine_Equal);
+		case "^=": return Value2!(TokenType.Accent_Equal);
+		case "<=": return Value2!(TokenType.LeftAngleBracket_Equal);
+		case ">=": return Value2!(TokenType.RightAngleBracket_Equal);
+		case "!=": return Value2!(TokenType.Exclamation_Equal);
+		case "<>": return Value2!(TokenType.Exclamation_Equal);
+		case "->": return Value2!(TokenType.Minus_RightAngleBracket);
+		case "<-": return Value2!(TokenType.LeftAngleBracket_Minus);
+		case "=>": return Value2!(TokenType.Equal_RightAngleBracket);
 		default: break;
 		}
 	}
+	if(!src.range.empty)
+	{
+		auto Value(TokenType TP)() pure
+		{
+			return Get_TokenResult(Token(src.current, TP, src.range[0 .. 1]), src.forward(1));
+		}
 	
-	auto Value(TokenType TP) pure
-	{
-		return Get_TokenResult(Token(src.current, TP, src.range[0 .. 1]), src.forward(1));
-	}
-	switch(src.range.front)
-	{
-	case '0': .. case '9': return parseNumericLiteral(src);
-	case '"': return parseStringToken(src);
-	case '\'': return parseCharacterToken(src);
-	case '+': return Value(TokenType.Plus);
-	case '-': return Value(TokenType.Minus);
-	case '*': return Value(TokenType.Asterisk);
-	case '/': return Value(TokenType.Slash);
-	case '%': return Value(TokenType.Percent);
-	case '&': return Value(TokenType.Ampasand);
-	case '|': return Value(TokenType.VerticalLine);
-	case '^': return Value(TokenType.Accent);
-	case '<': return Value(TokenType.LeftAngleBracket);
-	case '>': return Value(TokenType.RightAngleBracket);
-	case '=': return Value(TokenType.Equal);
-	case '!': return Value(TokenType.Exclamation);
-	case '~': return Value(TokenType.Tilda);
-	case '?': return Value(TokenType.Hatena);
-	case '#': return Value(TokenType.Sharp);
-	case ':': return Value(TokenType.Colon);
-	case ';': return Value(TokenType.Semicolon);
-	case ',': return Value(TokenType.Comma);
-	case '.': return parsePeriodOrNumericLiteral(src);
-	case '(': return Value(TokenType.OpenParenthese);
-	case ')': return Value(TokenType.CloseParenthese);
-	case '{': return Value(TokenType.OpenBrace);
-	case '}': return Value(TokenType.CloseBrace);
-	case '[': return Value(TokenType.OpenBracket);
-	case ']': return Value(TokenType.CloseBracket);
-	default: break;
+		switch(src.range.front)
+		{
+		case '0': .. case '9': return parseNumericLiteral(src);
+		case '"': return parseStringToken(src);
+		case '\'': return parseCharacterToken(src);
+		case '+': return Value!(TokenType.Plus);
+		case '-': return Value!(TokenType.Minus);
+		case '*': return Value!(TokenType.Asterisk);
+		case '/': return Value!(TokenType.Slash);
+		case '%': return Value!(TokenType.Percent);
+		case '&': return Value!(TokenType.Ampasand);
+		case '|': return Value!(TokenType.VerticalLine);
+		case '^': return Value!(TokenType.Accent);
+		case '<': return Value!(TokenType.LeftAngleBracket);
+		case '>': return Value!(TokenType.RightAngleBracket);
+		case '=': return Value!(TokenType.Equal);
+		case '!': return Value!(TokenType.Exclamation);
+		case '~': return Value!(TokenType.Tilda);
+		case '?': return Value!(TokenType.Hatena);
+		case '#': return Value!(TokenType.Sharp);
+		case ':': return Value!(TokenType.Colon);
+		case ';': return Value!(TokenType.Semicolon);
+		case ',': return Value!(TokenType.Comma);
+		case '.': return parsePeriodOrNumericLiteral(src);
+		case '(': return Value!(TokenType.OpenParenthese);
+		case ')': return Value!(TokenType.CloseParenthese);
+		case '{': return Value!(TokenType.OpenBrace);
+		case '}': return Value!(TokenType.CloseBrace);
+		case '[': return Value!(TokenType.OpenBracket);
+		case ']': return Value!(TokenType.CloseBracket);
+		default: break;
+		}
 	}
 	
 	// Fallthroughed Characters: Identifier
@@ -120,7 +123,7 @@ auto getToken(immutable SourceObject src)
 	}
 	if(!id_temp.empty)
 	{
-		auto makeToken(TokenType T)() { return Get_TokenResult(Token(src.current, T, id_temp), src2); }
+		auto makeToken(TokenType T)() pure { return Get_TokenResult(Token(src.current, T, id_temp), src2); }
 		
 		switch(id_temp)
 		{
@@ -317,26 +320,32 @@ auto parseHexadecimalLiteral(immutable SourceObject input) pure
 		return c.isInRange('0', '9') || c.toLower.isInRange('a', 'f');
 	}
 	
-	auto sourceStart = input.range[0 .. $];
-	size_t sourceCount = 0;
-	auto body_range = input.forward(2);
+	// HeadecimalLiteral = "0x" [0-9A-Fa-f]+
 	ulong ipart = 0;
-	while(!body_range.range.empty && isHexCharacter(body_range.range.front))
+	size_t sourceCount = 2;
+	immutable rest = input.forward(2).thenLoop!(x => !x.range.empty || isHexCharacter(x.range.front), (x)
 	{
 		ipart <<= 4;
-		switch(body_range.range.front.toLower)
+		switch(x.range.front.toLower)
 		{
-		case '0': .. case '9': ipart |= body_range.range.front - '0'; break;
-		case 'a': .. case 'f': ipart |= 0x0a + (body_range.range.front - 'a'); break;
+		case '0': .. case '9': ipart |= x.range.front - '0'; break;
+		case 'a': .. case 'f': ipart |= 0x0a + (x.range.front - 'a'); break;
 		default: assert(false);
 		}
-		body_range = body_range.forward(1);
 		sourceCount++;
-	}
-	if(!body_range.range.empty && body_range.range.front.toLower == 'u')
+		return x.forward;
+	});
+	
+	immutable isUnsigned = !rest.empty 6& rest.front.toLower == 'u';
+	immutable tokenType = isUnsigned ? TokenType.UlongLiteral : TokenType.LongLiteral;
+	immutable sourceRange = input.range[0 .. (isUnsigned ? sourceCount + 1 : sourceCount)];
+	immutable restRange = isUnsigned ? rest.forward : rest;
+	return Get_TokenResult(Token(input.current, tokenType, sourceRange, ipart), restRange);
+	return isUnsigned ? Get_TokenResult(input.current, TokenType.UlongLiteral, );
+	if(!rest.empty && rest.front.toLower == 'u')
 	{
-		return Get_TokenResult(Token(input.current, TokenType.UlongLiteral, sourceStart[0 .. sourceCount + 1], ipart),
-			body_range.forward(1));
+		return Get_TokenResult(Token(input.current, TokenType.UlongLiteral, input.range[0 .. sourceCount + 1], ipart),
+			rest.forward);
 	}
-	return Get_TokenResult(Token(input.current, TokenType.LongLiteral, sourceStart[0 .. sourceCount], ipart), body_range);
+	else return Get_TokenResult(Token(input.current, TokenType.LongLiteral, input.range[0 .. sourceCount], ipart), rest);
 }
