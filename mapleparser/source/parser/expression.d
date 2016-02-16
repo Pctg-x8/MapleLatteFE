@@ -228,23 +228,24 @@ public ParseResult matchMatchExpression(ParseResult input)
 		.matchUntilFail!(select!(matchCaseClause, matchDefaultClause))
 		.matchToken!(TokenType.CloseBrace);
 }
-/// DefaultClause = "default" "=>" Statement
+/// DefaultClause = "default" "=>" Expression ";"
 public ParseResult matchDefaultClause(ParseResult input)
 {
-	return input.matchToken!(TokenType.Default).matchToken!(TokenType.Equal_RightAngleBracket).matchStatement;
+	return input.matchToken!(TokenType.Default).matchToken!(TokenType.Equal_RightAngleBracket)
+		.matchExpression.matchToken!(TokenType.Semicolon);
 }
 /// CaseClause = ValueCaseClause | TypeMatchingCaseClause
 public ParseResult matchCaseClause(ParseResult input)
 {
 	return input.select!(matchValueCaseClause, matchTypeMatchingCaseClause);
 }
-/// ValueCaseClause = "case" ExpressionList "=>" Statement
+/// ValueCaseClause = "case" ExpressionList "=>" Expression ";"
 public ParseResult matchValueCaseClause(ParseResult input)
 {
 	return input.matchToken!(TokenType.Case).matchExpressionList
-		.matchToken!(TokenType.Equal_RightAngleBracket).matchStatement;
+		.matchToken!(TokenType.Equal_RightAngleBracket).matchExpression.matchToken!(TokenType.Semicolon);
 }
-/// TypeMatchingCaseClause = "case" Identifier ":" Type ("," Identifier ":" Type)* "=>" Statement
+/// TypeMatchingCaseClause = "case" Identifier ":" Type ("," Identifier ":" Type)* "=>" Expression ";"
 public ParseResult matchTypeMatchingCaseClause(ParseResult input)
 {
 	return input.matchToken!(TokenType.Case).matchToken!(TokenType.Identifier)
@@ -252,5 +253,5 @@ public ParseResult matchTypeMatchingCaseClause(ParseResult input)
 			x => x.matchToken!(TokenType.Comma).matchToken!(TokenType.Identifier)
 				.matchToken!(TokenType.Colon).matchType
 		)
-		.matchToken!(TokenType.Equal_RightAngleBracket).matchStatement;
+		.matchToken!(TokenType.Equal_RightAngleBracket).matchExpression.matchToken!(TokenType.Semicolon);
 }
