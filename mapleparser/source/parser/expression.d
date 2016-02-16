@@ -40,6 +40,8 @@ unittest
 	assert(Cont("fun = x => x + 2".asTokenList).matchExpression.succeeded);
 	assert(Cont("fun2 = (x, y) { val a = x + y; }".asTokenList).matchExpression.succeeded);
 	assert(Cont("v = ((x, y) => x * y)(2, 3)".asTokenList).matchExpression.succeeded);
+	assert(Cont("v = match(a) { case x => x + 1 => y => y + 2; default => x => 0; }".asTokenList)
+		.matchExpression.succeeded);
 }
 
 /// AssignOps(Set of tokens) = "=" | "+=" | "-=" | "*=" | "/=" | "%="
