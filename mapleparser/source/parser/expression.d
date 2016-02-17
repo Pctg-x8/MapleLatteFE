@@ -35,12 +35,12 @@ unittest
 	assert(Cont("data.element->double".asTokenList).matchExpression.succeeded);
 	assert(Cont("2 + 3".asTokenList).matchExpression.succeeded);
 	assert(Cont("x = 3.4f * vec.length".asTokenList).matchExpression.succeeded);
-	assert(Cont("x = match(a) { case 0, 2 => true; default => false; }".asTokenList).matchExpression.succeeded);
-	assert(Cont("x = match(a) { case 0, 2 => true; default => false }".asTokenList).matchExpression.succeeded);
+	assert(Cont("x = match(a) { case 0, 2: true; default: false; }".asTokenList).matchExpression.succeeded);
+	assert(Cont("x = match(a) { case 0, 2: true; default: false }".asTokenList).matchExpression.succeeded);
 	assert(Cont("fun = x => x + 2".asTokenList).matchExpression.succeeded);
 	assert(Cont("fun2 = (x, y) { val a = x + y; }".asTokenList).matchExpression.succeeded);
 	assert(Cont("v = ((x, y) => x * y)(2, 3)".asTokenList).matchExpression.succeeded);
-	assert(Cont("v = match(a) { case x => x + v => y => y + 2; default => x => 0; }".asTokenList)
+	assert(Cont("v = match(a) { case x: x + v => y => y + 2; default: x => 0; }".asTokenList)
 		.matchExpression.tail.front.type == TokenType.EndOfScript);
 }
 
@@ -228,10 +228,10 @@ public ParseResult matchMatchExpression(ParseResult input)
 		.matchUntilFail!(select!(matchCaseClause, matchDefaultClause))
 		.matchToken!(TokenType.CloseBrace);
 }
-/// DefaultClause = "default" "=>" Expression ";"
+/// DefaultClause = "default" ":" Expression ";"
 public ParseResult matchDefaultClause(ParseResult input)
 {
-	return input.matchToken!(TokenType.Default).matchToken!(TokenType.Equal_RightAngleBracket)
+	return input.matchToken!(TokenType.Default).matchToken!(TokenType.Colon)
 		.matchExpression.matchToken!(TokenType.Semicolon);
 }
 /// CaseClause = ValueCaseClause | TypeMatchingCaseClause
@@ -239,11 +239,11 @@ public ParseResult matchCaseClause(ParseResult input)
 {
 	return input.select!(matchValueCaseClause, matchTypeMatchingCaseClause);
 }
-/// ValueCaseClause = "case" (Identifier / ExpressionList) "=>" Expression ";"
+/// ValueCaseClause = "case" (Identifier / ExpressionList) ":" Expression ";"
 public ParseResult matchValueCaseClause(ParseResult input)
 {
 	return input.matchToken!(TokenType.Case).select!(matchToken!(TokenType.Identifier), matchExpressionList)
-		.matchToken!(TokenType.Equal_RightAngleBracket).matchExpression.matchToken!(TokenType.Semicolon);
+		.matchToken!(TokenType.Colon).matchExpression.matchToken!(TokenType.Semicolon);
 }
 /// TypeMatchingCaseClause = "case" Identifier ":" Type ("," Identifier ":" Type)* "=>" Expression ";"
 public ParseResult matchTypeMatchingCaseClause(ParseResult input)

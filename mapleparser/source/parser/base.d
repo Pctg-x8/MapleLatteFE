@@ -30,31 +30,6 @@ ParseResult Cont(ParseResult list) pure { return ParseResult(true, list.tail); }
 /// DataConstructor for ParseResult with failed
 ParseResult Fail(ParseResult list) pure { return ParseResult(false, list.tail); }
 
-/// Consume specified token or raise exception
-ParseResult consumeToken(TokenType TP)(ParseResult input)
-{
-	if(!input.succeeded) return input;
-	return input.front.type == TP ? Cont(input.dropOne) : Fail(input);
-}
-/// Set "then" action with condition
-ParseResult thenIf(alias CondF, alias ThenF)(ParseResult input)
-{
-	if(!input.succeeded) return input;
-	return CondF(input) ? ThenF(input) : input;
-}
-/// Set "then" action with condition and looping
-ParseResult thenLoop(alias Pred, alias Fun)(ParseResult input)
-{
-	if(!input.succeeded) return input;
-	return Pred(input) ? Fun(input).thenLoop!(Pred, Fun) : input;
-}
-/// Set "then" action
-ParseResult then(alias Fun)(ParseResult input)
-{
-	if(!input.succeeded) return input;
-	return Fun(input);
-}
-
 /// Try matching any of types
 ParseResult selectByType(Expressions...)(ParseResult input)
 {
