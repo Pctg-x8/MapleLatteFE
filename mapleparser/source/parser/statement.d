@@ -7,14 +7,32 @@ import mlfe.mapleparser.parser.type;
 import mlfe.mapleparser.lexer.token;
 import std.algorithm, std.range;
 
-/// Statement = StatementBlock / Expression ";" / ";"
+/// Statement = NamedStatement / IfStatement / WhileStatement / DoWhileStatement
+/// / ForStatement / ForeachStatement / StatementBlock / Expression ";" / ";"
 public ParseResult matchStatement(ParseResult input)
 {
 	return input.select!(
+		matchNamedStatement,
+		matchIfStatement, matchWhileStatement, matchDoWhileStatement,
+		matchForStatement, matchForeachStatement,
 		x => x.matchStatementBlock,
 		x => x.matchExpression.matchToken!(TokenType.Semicolon),
 		matchToken!(TokenType.Semicolon)
 	);
+}
+unittest
+{
+	import mlfe.mapleparser.lexer : asTokenList;
+
+	assert(Cont("if(true) a = 0; else b = 0;".asTokenList).matchStatement.succeeded);
+	assert(Cont("if(x < 2) a = true;".asTokenList).matchStatement.succeeded);
+	assert(Cont("while(true) a++;".asTokenList).matchStatement.succeeded);
+	assert(Cont("for(int x = 0; x < 3; x++) writeln(x);".asTokenList).matchStatement.succeeded);
+	assert(Cont("for(var b = 0; b < 3; b++) println(x);".asTokenList).matchStatement.succeeded);
+	assert(Cont("do a++; while(true);".asTokenList).matchStatement.succeeded);
+	assert(Cont("foreach(var a in chars) a.die();".asTokenList).matchStatement.succeeded);
+	assert(!Cont("do a++ while(true);".asTokenList).matchStatement.succeeded);
+	assert(Cont("lp0: while(true) update();".asTokenList).matchStatement.succeeded);
 }
 
 /// StatementBlock = "{" (LocalVariableDeclarator | Statement)* "}"
@@ -26,7 +44,8 @@ public ParseResult matchStatementBlock(ParseResult input)
 		))
 		.matchToken!(TokenType.CloseBrace);
 }
-/// LocalVariableDeclarator = ("var" / "val" / "const" [InferableType] / InferableType) VariableDeclarator ("," VariableDeclarator)* ";"
+/// LocalVariableDeclarator = ("var" / "val" / "const" [InferableType] / InferableType)
+///	VariableDeclarator ("," VariableDeclarator)* ";"
 public ParseResult matchLocalVariableDeclarator(ParseResult input)
 {
 	return input.select!(
@@ -43,6 +62,74 @@ public ParseResult matchVariableDeclarator(ParseResult input)
 {
 	return input.matchToken!(TokenType.Identifier)
 		.ignorable!(x => x.matchToken!(TokenType.Equal).matchTriExpression);
+}
+
+/// NamedStatement = Identifier ":" (WhileStatement / DoWhileStatement / ForStatement / ForeachStatement)
+public ParseResult matchNamedStatement(ParseResult input)
+{
+	return input.matchToken!(TokenType.Identifier).matchToken!(TokenType.Colon).select!(
+		matchWhileStatement, matchDoWhileStatement, matchForStatement, matchForeachStatement
+	);
+}
+
+/// IfStatement = "if" "(" Expression ")" Statement ["else" Statement]
+public ParseResult matchIfStatement(ParseResult input)
+{
+	return input.matchToken!(TokenType.If).matchToken!(TokenType.OpenParenthese)
+		.matchExpression.matchToken!(TokenType.CloseParenthese)
+		.matchStatement.ignorable!(x => x.matchToken!(TokenType.Else).matchStatement);
+}
+/// WhileStatement = "while" "(" Expression ")" Statement
+public ParseResult matchWhileStatement(ParseResult input)
+{
+	return input.matchToken!(TokenType.While).matchToken!(TokenType.OpenParenthese)
+		.matchExpression.matchToken!(TokenType.CloseParenthese).matchStatement;
+}
+/// DoWhileStatement = "do" Statement "while" "(" Expression ")" ";"
+public ParseResult matchDoWhileStatement(ParseResult input)
+{
+	return input.matchToken!(TokenType.Do).matchStatement
+		.matchToken!(TokenType.While).matchToken!(TokenType.OpenParenthese)
+		.matchExpression.matchToken!(TokenType.CloseParenthese).matchToken!(TokenType.Semicolon);
+}
+/// ForStatement = "for" "(" [ForPrimaryClause] ";" [Expression] ";" [Expression] ")" Statement
+public ParseResult matchForStatement(ParseResult input)
+{
+	return input.matchToken!(TokenType.For).matchToken!(TokenType.OpenParenthese)
+		.ignorable!matchForPrimaryClause.matchToken!(TokenType.Semicolon)
+		.ignorable!matchExpression.matchToken!(TokenType.Semicolon)
+		.ignorable!matchExpression.matchToken!(TokenType.CloseParenthese)
+		.matchStatement;
+}
+/// ForPrimaryClause = ("var" / "val" / "const" [InferableType] / InferableType) VariableDeclarator / Expression
+public ParseResult matchForPrimaryClause(ParseResult input)
+{
+	return input.select!(
+		x => x.matchToken!(TokenType.Var).matchVariableDeclarator,
+		x => x.matchToken!(TokenType.Val).matchVariableDeclarator,
+		x => x.matchToken!(TokenType.Const).ignorable!matchInferableType.matchVariableDeclarator,
+		x => x.matchInferableType.matchVariableDeclarator,
+		x => x.matchExpression
+	);
+}
+/// ForeachStatement = "foreach" "(" ForeachAggregatorClause "in" Expression ")" Statement
+public ParseResult matchForeachStatement(ParseResult input)
+{
+	return input.matchToken!(TokenType.Foreach).matchToken!(TokenType.OpenParenthese)
+		.matchForeachAggregatorClause.matchToken!(TokenType.In)
+		.matchExpression.matchToken!(TokenType.CloseParenthese).matchStatement;
+}
+/// ForeachAggregatorClause = ("var" / "val" / "const" [InferableType] / InferableType) Identifier ("," Identifier)*
+public ParseResult matchForeachAggregatorClause(ParseResult input)
+{
+	return input.select!(
+		x => x.matchToken!(TokenType.Val),
+		x => x.matchToken!(TokenType.Var),
+		x => x.matchToken!(TokenType.Const).ignorable!matchInferableType,
+		x => x.matchInferableType
+	).matchToken!(TokenType.Identifier).matchUntilFail!(
+		x => x.matchToken!(TokenType.Comma).matchToken!(TokenType.Identifier)
+	);
 }
 
 /*
