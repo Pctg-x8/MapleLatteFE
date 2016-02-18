@@ -8,13 +8,14 @@ import mlfe.mapleparser.lexer.token;
 import std.algorithm, std.range;
 
 /// Statement = NamedStatement / IfStatement / WhileStatement / DoWhileStatement
-/// / ForStatement / ForeachStatement / StatementBlock / Expression ";" / ";"
+/// / ForStatement / ForeachStatement / ControlPathStatements
+/// / StatementBlock / Expression ";" / ";"
 public ParseResult matchStatement(ParseResult input)
 {
 	return input.select!(
 		matchNamedStatement,
 		matchIfStatement, matchWhileStatement, matchDoWhileStatement,
-		matchForStatement, matchForeachStatement,
+		matchForStatement, matchForeachStatement, matchControlPathStatements,
 		x => x.matchStatementBlock,
 		x => x.matchExpression.matchToken!(TokenType.Semicolon),
 		matchToken!(TokenType.Semicolon)
@@ -33,6 +34,9 @@ unittest
 	assert(Cont("foreach(var a in chars) a.die();".asTokenList).matchStatement.succeeded);
 	assert(!Cont("do a++ while(true);".asTokenList).matchStatement.succeeded);
 	assert(Cont("lp0: while(true) update();".asTokenList).matchStatement.succeeded);
+	assert(Cont("while(true) { a++; if(a > 30) break; }".asTokenList).matchStatement.succeeded);
+	assert(Cont("lp0: foreach(line in lines) { if(a.empty) continue lp0; }".asTokenList).matchStatement.succeeded);
+	assert(Cont("return true;".asTokenList).matchStatement.succeeded);
 }
 
 /// StatementBlock = "{" (LocalVariableDeclarator | Statement)* "}"
@@ -119,16 +123,28 @@ public ParseResult matchForeachStatement(ParseResult input)
 		.matchForeachAggregatorClause.matchToken!(TokenType.In)
 		.matchExpression.matchToken!(TokenType.CloseParenthese).matchStatement;
 }
-/// ForeachAggregatorClause = ("var" / "val" / "const" [InferableType] / InferableType) Identifier ("," Identifier)*
+/// ForeachAggregatorClause = ["var" / "val" / "const" [InferableType] / InferableType] Identifier ("," Identifier)*
 public ParseResult matchForeachAggregatorClause(ParseResult input)
 {
 	return input.select!(
-		x => x.matchToken!(TokenType.Val),
-		x => x.matchToken!(TokenType.Var),
-		x => x.matchToken!(TokenType.Const).ignorable!matchInferableType,
-		x => x.matchInferableType
-	).matchToken!(TokenType.Identifier).matchUntilFail!(
+		x => x.matchToken!(TokenType.Val).matchToken!(TokenType.Identifier),
+		x => x.matchToken!(TokenType.Var).matchToken!(TokenType.Identifier),
+		x => x.matchToken!(TokenType.Const).ignorable!matchInferableType.matchToken!(TokenType.Identifier),
+		x => x.matchInferableType.matchToken!(TokenType.Identifier),
+		x => x.matchToken!(TokenType.Identifier)
+	).matchUntilFail!(
 		x => x.matchToken!(TokenType.Comma).matchToken!(TokenType.Identifier)
+	);
+}
+/// ControlPathStatements = "break" [Identifier] ";" / "continue" [Identifier] ";" / "return" [Expression] ";"
+public ParseResult matchControlPathStatements(ParseResult input)
+{
+	alias matchIdentifier = matchToken!(TokenType.Identifier);
+
+	return input.selectByType!(
+		TokenType.Break, x => x.dropOne.ignorable!matchIdentifier.matchToken!(TokenType.Semicolon),
+		TokenType.Continue, x => x.dropOne.ignorable!matchIdentifier.matchToken!(TokenType.Semicolon),
+		TokenType.Return, x => x.dropOne.ignorable!matchExpression.matchToken!(TokenType.Semicolon)
 	);
 }
 
