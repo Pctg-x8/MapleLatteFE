@@ -9,6 +9,7 @@ import std.algorithm, std.range;
 
 /// Statement = NamedStatement / IfStatement / WhileStatement / DoWhileStatement
 /// / ForStatement / ForeachStatement / ControlPathStatements
+/// / ThrowStatement / TryStatement
 /// / StatementBlock / Expression ";" / ";"
 public ParseResult matchStatement(ParseResult input)
 {
@@ -16,7 +17,8 @@ public ParseResult matchStatement(ParseResult input)
 		matchNamedStatement,
 		matchIfStatement, matchWhileStatement, matchDoWhileStatement,
 		matchForStatement, matchForeachStatement, matchControlPathStatements,
-		x => x.matchStatementBlock,
+		matchThrowStatement, matchTryStatement,
+		matchStatementBlock,
 		x => x.matchExpression.matchToken!(TokenType.Semicolon),
 		matchToken!(TokenType.Semicolon)
 	);
@@ -37,6 +39,9 @@ unittest
 	assert(Cont("while(true) { a++; if(a > 30) break; }".asTokenList).matchStatement.succeeded);
 	assert(Cont("lp0: foreach(line in lines) { if(a.empty) continue lp0; }".asTokenList).matchStatement.succeeded);
 	assert(Cont("return true;".asTokenList).matchStatement.succeeded);
+	assert(Cont("throw new Exception(\"null\");".asTokenList).matchStatement.succeeded);
+	assert(Cont("try { func_except(); } catch(Exception e) { return e; } finally resource_freeing();".asTokenList)
+			.matchStatement.succeeded);
 }
 
 /// StatementBlock = "{" (LocalVariableDeclarator | Statement)* "}"
@@ -146,6 +151,29 @@ public ParseResult matchControlPathStatements(ParseResult input)
 		TokenType.Continue, x => x.dropOne.ignorable!matchIdentifier.matchToken!(TokenType.Semicolon),
 		TokenType.Return, x => x.dropOne.ignorable!matchExpression.matchToken!(TokenType.Semicolon)
 	);
+}
+/// ThrowStatement = "throw" Expression ";"
+public ParseResult matchThrowStatement(ParseResult input)
+{
+	return input.matchToken!(TokenType.Throw).matchExpression.matchToken!(TokenType.Semicolon);
+}
+/// TryStatement = "try" Statement CatchClause* [FinallyClause]
+public ParseResult matchTryStatement(ParseResult input)
+{
+	return input.matchToken!(TokenType.Try).matchStatement
+		.matchUntilFail!matchCatchClause.ignorable!matchFinallyClause;
+}
+/// CatchClause = "catch" "(" Type [Identifier] ")" Statement
+public ParseResult matchCatchClause(ParseResult input)
+{
+	return input.matchToken!(TokenType.Catch).matchToken!(TokenType.OpenParenthese)
+		.matchType.ignorable!(matchToken!(TokenType.Identifier)).matchToken!(TokenType.CloseParenthese)
+		.matchStatement;
+}
+/// FinallyClause = "finally" Statement
+public ParseResult matchFinallyClause(ParseResult input)
+{
+	return input.matchToken!(TokenType.Finally).matchStatement;
 }
 
 /*
