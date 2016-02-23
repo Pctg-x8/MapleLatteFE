@@ -42,8 +42,9 @@ unittest
 	assert(Cont("throw new Exception(\"null\");".asTokenList).matchStatement.succeeded);
 	assert(Cont("try { func_except(); } catch(Exception e) { return e; } finally resource_freeing();".asTokenList)
 		.matchStatement.succeeded);
-	assert(Cont("switch(a) { case 1: writeln(\"hit!\"); default: /* nothing */; }".asTokenList).matchStatement.succeeded);
-	assert(!Cont("switch(a) { case 1: writeln(\"hit!\"); break; default: break; }".asTokenList).matchStatement.succeeded);
+	assert(Cont("switch(a) { case 1 => writeln(\"hit!\"); default => /* nothing */; }".asTokenList).matchStatement.succeeded);
+	assert(!Cont("switch(a) { case 1 => writeln(\"hit!\"); break; default => break; }".asTokenList).matchStatement.succeeded);
+	assert(Cont("switch(a) { case x => writeln(\"a == x;\"); default => { writeln(\"nothing.\"); } }".asTokenList).matchStatement.succeeded);
 }
 
 /// StatementBlock = "{" (LocalVariableDeclarator | Statement)* "}"
@@ -190,24 +191,34 @@ public ParseResult matchCaseClause(ParseResult input)
 {
 	return input.select!(matchValueCaseClause, matchTypeMatchingCaseClause);
 }
-/// ValueCaseClause = "case" ExpressionList ":" Statement
+/// ValueCaseClause = "case" ValueCaseExpression ("," ValueCaseExpression)* "=>" Statement
 public ParseResult matchValueCaseClause(ParseResult input)
 {
-	return input.matchToken!(TokenType.Case).matchExpressionList.matchToken!(TokenType.Colon)
-		.matchStatement;
+	return input.matchToken!(TokenType.Case).matchValueCaseExpression
+		.matchUntilFail!(x => x.matchToken!(TokenType.Comma).matchValueCaseExpression)
+		.matchToken!(TokenType.Equal_RightAngleBracket).matchStatement;
 }
-/// TypeMatchingCaseClause = "case" Identifier ":" InferableType ("," Identifier ":" InferableType)* ":" Statement
+/// ValueCaseExpression = Identifier "=>"? / "(" Identifier ")" "=>"? / Expression
+public ParseResult matchValueCaseExpression(ParseResult input)
+{
+	return input.select!(
+		x => x.matchToken!(TokenType.Identifier).requestToken!(TokenType.Equal_RightAngleBracket),
+		x => x.matchToken!(TokenType.OpenParenthese).matchToken!(TokenType.Identifier).matchToken!(TokenType.CloseParenthese).requestToken!(TokenType.Equal_RightAngleBracket),
+		matchExpression
+	);
+}
+/// TypeMatchingCaseClause = "case" Identifier ":" InferableType ("," Identifier ":" InferableType)* "=>" Statement
 public ParseResult matchTypeMatchingCaseClause(ParseResult input)
 {
 	return input.matchToken!(TokenType.Case).matchToken!(TokenType.Identifier).matchToken!(TokenType.Colon)
 		.matchInferableType.matchUntilFail!(
 			x => x.matchToken!(TokenType.Comma).matchToken!(TokenType.Identifier)
 				.matchToken!(TokenType.Colon).matchInferableType
-		).matchToken!(TokenType.Colon).matchStatement;
+		).matchToken!(TokenType.Equal_RightAngleBracket).matchStatement;
 }
-/// DefaultClause = "default" ":" Statement
+/// DefaultClause = "default" "=>" Statement
 public ParseResult matchDefaultClause(ParseResult input)
 {
-	return input.matchToken!(TokenType.Default).matchToken!(TokenType.Colon).matchStatement;
+	return input.matchToken!(TokenType.Default).matchToken!(TokenType.Equal_RightAngleBracket).matchStatement;
 }
 

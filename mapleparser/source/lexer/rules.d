@@ -183,6 +183,13 @@ auto getToken(immutable SourceObject src)
 		case "new": return makeToken!(TokenType.New);
 		case "true": return makeToken!(TokenType.True);
 		case "false": return makeToken!(TokenType.False);
+		case "static": return makeToken!(TokenType.Static);
+		case "property": return makeToken!(TokenType.Property);
+		case "public": return makeToken!(TokenType.Public);
+		case "private": return makeToken!(TokenType.Private);
+		case "protected": return makeToken!(TokenType.Protected);
+		case "override": return makeToken!(TokenType.Override);
+		case "final": return makeToken!(TokenType.Final);
 		default: return Get_TokenResult(Token(src.current, TokenType.Identifier, id_temp), identifier_rest);
 		}
 	}

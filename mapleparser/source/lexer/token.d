@@ -162,7 +162,8 @@ enum TokenType
 	
 	Package, This, Super, Global, If, Else, For, Foreach, While, Do, Break, Continue, Return, Match,
 	Void, Char, Uchar, Byte, Short, Ushort, Word, Int, Uint, Dword, Long, Ulong, Qword, Float, Double, Auto,
-	Var, Val, Const, In, Throw, Try, Catch, Finally, Switch, Case, Default, New, True, False
+	Var, Val, Const, In, Throw, Try, Catch, Finally, Switch, Case, Default, New, True, False,
+	Static, Property, Public, Private, Protected, Override, Final
 }
 bool isControlKeyword(TokenType t)
 {

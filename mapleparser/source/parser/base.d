@@ -78,6 +78,12 @@ ParseResult matchToken(TokenType TP)(ParseResult input)
 	if(!input.succeeded) return input;
 	return input.front.type == TP ? Cont(input.dropOne) : Fail(input);
 }
+/// Check next token
+ParseResult requestToken(TokenType TP)(ParseResult input)
+{
+	if(!input.succeeded) return input;
+	return input.front.type == TP ? input : Fail(input);
+}
 
 /// Debug the next token
 TokenList dbg(TokenList input)
