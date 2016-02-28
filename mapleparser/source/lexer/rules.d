@@ -190,6 +190,14 @@ auto getToken(immutable SourceObject src)
 		case "protected": return makeToken!(TokenType.Protected);
 		case "override": return makeToken!(TokenType.Override);
 		case "final": return makeToken!(TokenType.Final);
+		case "class": return makeToken!(TokenType.Class);
+		case "trait": return makeToken!(TokenType.Trait);
+		case "enum": return makeToken!(TokenType.Enum);
+		case "template": return makeToken!(TokenType.Template);
+		case "alias": return makeToken!(TokenType.Alias);
+		case "extends": return makeToken!(TokenType.Extends);
+		case "with": return makeToken!(TokenType.With);
+		case "partial": return makeToken!(TokenType.Partial);
 		default: return Get_TokenResult(Token(src.current, TokenType.Identifier, id_temp), identifier_rest);
 		}
 	}
