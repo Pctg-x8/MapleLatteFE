@@ -11,11 +11,12 @@ import mlfe.mapleparser.parser.expression;
 import std.range;
 
 /// Declarations = ClassDeclaration / TraitDeclaration / EnumDeclaration / TemplateDeclaration / AliasDeclaration
-///		/ FieldDeclaration / MethodDeclaration / PropertyDeclaration
+///		/ FieldDeclaration / MethodDeclaration / PropertyDeclaration / StaticBlock
 public ParseResult matchDeclarations(ParseResult input)
 {
 	return input.select!(matchClassDeclaration, matchTraitDeclaration, matchEnumDeclaration, matchTemplateDeclaration,
-		matchAliasDeclaration, matchFieldDeclaration, matchMethodDeclaration, matchPropertyDeclaration);
+		matchAliasDeclaration, matchFieldDeclaration, matchMethodDeclaration, matchPropertyDeclaration,
+		matchStaticBlock);
 }
 unittest
 {

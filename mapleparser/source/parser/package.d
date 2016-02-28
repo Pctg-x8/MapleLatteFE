@@ -1,17 +1,50 @@
 module mlfe.mapleparser.parser;
 
 // Parser //
-public import mlfe.mapleparser.parser.exceptions;
-public import mlfe.mapleparser.parser.statement;
+import mlfe.mapleparser.parser.declaration;
+import mlfe.mapleparser.parser.base;
+import mlfe.mapleparser.parser.exceptions;
 import mlfe.mapleparser.lexer;
 import std.container, std.range;
 
 /// Generates Abstract Syntax Tree from TokenList
-/*void asSyntaxTree(TokenList input)
+void asSyntaxTree(TokenList input)
 {
 	if(input.front.type == TokenType.EndOfScript) return; // empty input
-	scope auto rest = Statement.parse(input);
-	if(rest.front.type != TokenType.EndOfScript) throw new ParseException("Script not terminated.", rest.front.at);
+	scope auto rest = Cont(input).matchScript;
+	if(rest.tail.front.type != TokenType.EndOfScript)
+	{
+		throw new ParseException("Script not terminated.", rest.tail.front.at);
+	}
+}
+unittest
+{
+	"public void main(String[] args) io.writeln(args.length);".asTokenList.asSyntaxTree;
+	"partial class FluidMechanics; static val ID = \"cterm2.fluidmechanics\";".asTokenList.asSyntaxTree;
+}
+
+/// Script = [PackageDeclaration] [HeadClassDeclaration] Declaration*
+public auto matchScript(ParseResult input)
+{
+	return input.ignorable!matchPackageDeclaration.ignorable!matchHeadClassDeclaration.matchUntilFail!matchDeclarations;
+}
+/// PackageDeclaration = "package" PackageName ";"
+public auto matchPackageDeclaration(ParseResult input)
+{
+	return input.matchToken!(TokenType.Package).matchPackageName.matchToken!(TokenType.Semicolon);
+}
+/// PackageName = Identifier ("." Identifier)*
+public auto matchPackageName(ParseResult input)
+{
+	return input.matchToken!(TokenType.Identifier)
+		.matchUntilFail!(x => x.matchToken!(TokenType.Period).matchToken!(TokenType.Identifier));
+}
+/// HeadClassDeclaration = Qualifier* "class" [PackageName "."] DeclarationName [ExtendsClause] WithClause* ";"
+public auto matchHeadClassDeclaration(ParseResult input)
+{
+	return input.matchUntilFail!matchQualifier.matchToken!(TokenType.Class).ignorable!(
+		x => x.matchPackageName.matchToken!(TokenType.Period)
+	).matchDeclarationName.ignorable!matchExtendsClause.matchUntilFail!matchWithClause.matchToken!(TokenType.Semicolon);
 }
 
 private auto asTestCase(bool ThrownException = false)(string testcase)
@@ -20,7 +53,7 @@ private auto asTestCase(bool ThrownException = false)(string testcase)
 	
 	static if(ThrownException) assertThrown!ParseException(testcase.asTokenList.asSyntaxTree);
 	else assertNotThrown!ParseException(testcase.asTokenList.asSyntaxTree);
-}*/
+}
 
 unittest
 {
