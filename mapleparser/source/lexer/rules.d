@@ -198,6 +198,7 @@ auto getToken(immutable SourceObject src)
 		case "extends": return makeToken!(TokenType.Extends);
 		case "with": return makeToken!(TokenType.With);
 		case "partial": return makeToken!(TokenType.Partial);
+		case "import": return makeToken!(TokenType.Import);
 		default: return Get_TokenResult(Token(src.current, TokenType.Identifier, id_temp), identifier_rest);
 		}
 	}

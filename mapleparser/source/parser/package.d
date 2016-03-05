@@ -21,12 +21,20 @@ unittest
 {
 	"public void main(String[] args) io.writeln(args.length);".asTokenList.asSyntaxTree;
 	"partial class FluidMechanics; static val ID = \"cterm2.fluidmechanics\";".asTokenList.asSyntaxTree;
+	"package com.cterm2.mcfm;
+	import cpw.mods.fml.common.*;
+	import maple.string.*;
+	/// Main class of Fluid Mechanics
+	class FluidMechaincs;
+	
+	static val ModID = \"cterm2.fluidMechanics\";".asTokenList.asSyntaxTree;
 }
 
-/// Script = [PackageDeclaration] [HeadClassDeclaration] Declaration*
+/// Script = [PackageDeclaration] ImportDeclaration* [HeadClassDeclaration] Declaration*
 public auto matchScript(ParseResult input)
 {
-	return input.ignorable!matchPackageDeclaration.ignorable!matchHeadClassDeclaration.matchUntilFail!matchDeclarations;
+	return input.ignorable!matchPackageDeclaration.matchUntilFail!matchImportDeclaration
+		.ignorable!matchHeadClassDeclaration.matchUntilFail!matchDeclarations;
 }
 /// PackageDeclaration = "package" PackageName ";"
 public auto matchPackageDeclaration(ParseResult input)

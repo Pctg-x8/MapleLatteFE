@@ -164,7 +164,7 @@ enum TokenType
 	Void, Char, Uchar, Byte, Short, Ushort, Word, Int, Uint, Dword, Long, Ulong, Qword, Float, Double, Auto,
 	Var, Val, Const, In, Throw, Try, Catch, Finally, Switch, Case, Default, New, True, False,
 	Static, Property, Public, Private, Protected, Override, Final, Partial,
-	Class, Extends, With, Trait, Enum, Template, Alias
+	Class, Extends, With, Trait, Enum, Template, Alias, Import
 }
 bool isControlKeyword(TokenType t)
 {

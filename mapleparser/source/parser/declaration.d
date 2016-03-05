@@ -11,12 +11,12 @@ import mlfe.mapleparser.parser.expression;
 import std.range;
 
 /// Declarations = ClassDeclaration / TraitDeclaration / EnumDeclaration / TemplateDeclaration / AliasDeclaration
-///		/ FieldDeclaration / MethodDeclaration / PropertyDeclaration / StaticBlock
+///		/ FieldDeclaration / MethodDeclaration / PropertyDeclaration / StaticBlock / ImportDeclaration
 public ParseResult matchDeclarations(ParseResult input)
 {
 	return input.select!(matchClassDeclaration, matchTraitDeclaration, matchEnumDeclaration, matchTemplateDeclaration,
 		matchAliasDeclaration, matchFieldDeclaration, matchMethodDeclaration, matchPropertyDeclaration,
-		matchStaticBlock);
+		matchStaticBlock, matchImportDeclaration);
 }
 unittest
 {
@@ -29,6 +29,35 @@ unittest
 	assert(tester!"public trait ID3D12DeviceChild with IUnknown {}");
 	assert(tester!"public alias T = int;");
 	assert(tester!"public template Identification(string ID) { public val name = ID; }");
+}
+
+/// ImportDeclaration = "import" ImportPath ("," ImportPath)* ";"
+public ParseResult matchImportDeclaration(ParseResult input)
+{
+	return input.matchToken!(TokenType.Import).matchImportPath
+		.matchUntilFail!(x => x.matchToken!(TokenType.Comma).matchImportPath).matchToken!(TokenType.Semicolon);
+}
+unittest
+{
+	auto tester(string t)() { return Cont(t.asTokenList).matchImportDeclaration.succeeded; }
+
+	assert(tester!"import java.lang.*;");
+	assert(tester!"import maple.{io.*, *};");
+}
+/// ImportPath = Identifier ("." Identifier)* ["." "*" / "." SubpackageImport]
+public ParseResult matchImportPath(ParseResult input)
+{
+	return input.matchToken!(TokenType.Identifier)
+		.matchUntilFail!(x => x.matchToken!(TokenType.Period).matchToken!(TokenType.Identifier))
+		.ignorable!(select!(x => x.matchToken!(TokenType.Period).matchToken!(TokenType.Asterisk),
+			x => x.matchToken!(TokenType.Period).matchSubpackageImport));
+}
+/// SubpackageImport = "{" (ImportPath / "*") ("," (ImportPath / "*"))* "}"
+public ParseResult matchSubpackageImport(ParseResult input)
+{
+	return input.matchToken!(TokenType.OpenBrace).select!(matchImportPath, matchToken!(TokenType.Asterisk))
+		.matchUntilFail!(x => x.matchToken!(TokenType.Comma).select!(matchImportPath, matchToken!(TokenType.Asterisk)))
+		.matchToken!(TokenType.CloseBrace);
 }
 
 /// ClassDeclaration = Qualifier* "class" DeclarationName [ExtendsClause] WithClause* ClassBody
