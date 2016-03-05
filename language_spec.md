@@ -84,7 +84,7 @@ void main(String[] args)
 `<テンプレート名>#<テンプレート引数>` または `<テンプレート名>#(<テンプレート引数リスト>)`
 * テンプレート、ジェネリクスともに共通の実体化構文を使う
   * そのため、テンプレートとジェネリクスを同時に使用することはできない
-  * ネストは可能なため、ひとつの名に対して同時に使用されない場合は(`LinkedListWrapper#(ArrayList#String)`等)問題は発生しない
+  * ネストは可能なため、ひとつの名に対して同時に使用されない場合(`LinkedListWrapper#(ArrayList#String)`等)は問題なく使用できる
 * 括弧でくくらない場合は、次の一つのシンボルのみ引数として認識される
   * `LinkedListWrapper#(String[])`と`LinkedListWrapper#String[]`は意味が異なる(後者は`LinkedListWrapper#String`の可変長配列とみなされる)
 
